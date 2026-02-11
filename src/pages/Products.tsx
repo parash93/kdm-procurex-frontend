@@ -5,74 +5,78 @@ import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
 
-export function Suppliers() {
+export function Products() {
     const isMobile = useMediaQuery('(max-width: 768px)');
-    const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [search, setSearch] = useState("");
 
     const form = useForm({
         initialValues: {
-            companyName: "",
-            contactPerson: "",
-            email: "",
-            phone: "",
-            address: "",
+            name: "",
+            categoryId: "",
+            description: "",
             status: "ACTIVE",
         },
         validate: {
-            companyName: (value) => (value.length < 2 ? 'Company name must have at least 2 letters' : null),
-            email: (value) => (value && !/^\S+@\S+$/.test(value) ? 'Invalid email' : null),
+            name: (value) => (value.length < 2 ? 'Name must have at least 2 letters' : null),
+            categoryId: (value) => (!value ? 'Category is required' : null),
         },
     });
 
-    const fetchSuppliers = () => {
-        api.getSuppliers()
-            .then(setSuppliers)
-            .catch(console.error);
+    const fetchData = async () => {
+        try {
+            const [productsData, categoriesData] = await Promise.all([
+                api.getProducts(),
+                api.getProductCategories()
+            ]);
+            setProducts(productsData);
+            setCategories(categoriesData);
+        } catch (error) {
+            console.error("Error fetching products/categories:", error);
+        }
     };
 
     useEffect(() => {
-        fetchSuppliers();
+        fetchData();
     }, []);
 
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
-                await api.updateSupplier(editingId, values);
+                await api.updateProduct(editingId, values);
             } else {
-                await api.createSupplier(values);
+                await api.createProduct(values);
             }
             close();
             form.reset();
             setEditingId(null);
-            fetchSuppliers();
+            fetchData();
         } catch (error) {
-            console.error("Error saving supplier:", error);
+            console.error("Error saving product:", error);
         }
     };
 
-    const handleEdit = (supplier: any) => {
-        setEditingId(supplier.id);
+    const handleEdit = (product: any) => {
+        setEditingId(product.id);
         form.setValues({
-            companyName: supplier.companyName,
-            contactPerson: supplier.contactPerson || "",
-            email: supplier.email || "",
-            phone: supplier.phone || "",
-            address: supplier.address || "",
-            status: supplier.status || "ACTIVE",
+            name: product.name,
+            categoryId: product.categoryId,
+            description: product.description || "",
+            status: product.status || "ACTIVE",
         });
         open();
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("Are you sure you want to delete this supplier?")) {
+        if (window.confirm("Are you sure you want to delete this product?")) {
             try {
-                await api.deleteSupplier(id);
-                fetchSuppliers();
+                await api.deleteProduct(id);
+                fetchData();
             } catch (error) {
-                console.error("Error deleting supplier:", error);
+                console.error("Error deleting product:", error);
             }
         }
     };
@@ -84,18 +88,22 @@ export function Suppliers() {
         open();
     };
 
-    const filteredSuppliers = suppliers.filter(s =>
-        s.companyName.toLowerCase().includes(search.toLowerCase()) ||
-        (s.contactPerson && s.contactPerson.toLowerCase().includes(search.toLowerCase()))
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.category?.name && p.category.name.toLowerCase().includes(search.toLowerCase()))
     );
 
-    const rows = filteredSuppliers.map((element: any) => (
+    const rows = filteredProducts.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
-                <Text fw={500}>{element.companyName}</Text>
+                <Text fw={500}>{element.name}</Text>
+                {element.description && (
+                    <Text size="xs" c="dimmed" lineClamp={1}>{element.description}</Text>
+                )}
             </Table.Td>
-            <Table.Td>{element.contactPerson || '-'}</Table.Td>
-            <Table.Td>{element.email || '-'}</Table.Td>
+            <Table.Td>
+                <Badge variant="dot" color="blue">{element.category?.name || 'Uncategorized'}</Badge>
+            </Table.Td>
             <Table.Td>
                 <Badge
                     variant="light"
@@ -122,8 +130,8 @@ export function Suppliers() {
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-end" wrap="wrap">
                     <Box>
-                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Suppliers</Title>
-                        <Text c="dimmed" size="sm">Manage your vendor relationships and master data</Text>
+                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Products</Title>
+                        <Text c="dimmed" size="sm">Manage your product catalog and items</Text>
                     </Box>
                     <Button
                         leftSection={<IconPlus size={18} />}
@@ -134,14 +142,14 @@ export function Suppliers() {
                         gradient={{ from: 'blue', to: 'cyan' }}
                         w={isMobile ? '100%' : 'auto'}
                     >
-                        Add New Supplier
+                        Add New Product
                     </Button>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
                     <Group mb="lg">
                         <TextInput
-                            placeholder="Search suppliers by name or contact..."
+                            placeholder="Search products by name or category..."
                             leftSection={<IconSearch size={16} />}
                             value={search}
                             onChange={(e) => setSearch(e.currentTarget.value)}
@@ -150,13 +158,12 @@ export function Suppliers() {
                         />
                     </Group>
 
-                    <Table.ScrollContainer minWidth={800}>
+                    <Table.ScrollContainer minWidth={700}>
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
-                                    <Table.Th>Company Name</Table.Th>
-                                    <Table.Th>Contact Person</Table.Th>
-                                    <Table.Th>Email</Table.Th>
+                                    <Table.Th>Product Details</Table.Th>
+                                    <Table.Th>Category</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                                 </Table.Tr>
@@ -164,8 +171,8 @@ export function Suppliers() {
                             <Table.Tbody>
                                 {rows.length > 0 ? rows : (
                                     <Table.Tr>
-                                        <Table.Td colSpan={5}>
-                                            <Text ta="center" py="xl" c="dimmed">No suppliers found</Text>
+                                        <Table.Td colSpan={4}>
+                                            <Text ta="center" py="xl" c="dimmed">No products found</Text>
                                         </Table.Td>
                                     </Table.Tr>
                                 )}
@@ -180,7 +187,7 @@ export function Suppliers() {
                 onClose={close}
                 title={
                     <Text fw={700} size="lg">
-                        {editingId ? "Edit Supplier" : "Add New Supplier"}
+                        {editingId ? "Edit Product" : "Add New Product"}
                     </Text>
                 }
                 centered
@@ -196,59 +203,47 @@ export function Suppliers() {
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="md">
                         <TextInput
-                            label="Company Name"
-                            placeholder="e.g. Acme Corporation"
+                            label="Product Name"
+                            placeholder="e.g. Ultra Charger 20W"
                             withAsterisk
                             radius="md"
-                            {...form.getInputProps("companyName")}
-                        />
-                        <Stack gap="md">
-                            <TextInput
-                                label="Contact Person"
-                                placeholder="Full name"
-                                radius="md"
-                                {...form.getInputProps("contactPerson")}
-                            />
-                            <TextInput
-                                label="Email Address"
-                                placeholder="email@example.com"
-                                radius="md"
-                                {...form.getInputProps("email")}
-                            />
-                        </Stack>
-                        <TextInput
-                            label="Phone Number"
-                            placeholder="+1234567890"
-                            radius="md"
-                            {...form.getInputProps("phone")}
-                        />
-                        <TextInput
-                            label="Physical Address"
-                            placeholder="Complete address"
-                            radius="md"
-                            {...form.getInputProps("address")}
+                            {...form.getInputProps("name")}
                         />
 
-                        {editingId && (
-                            <Select
-                                label="Verification Status"
-                                placeholder="Select status"
-                                data={[
-                                    { value: 'ACTIVE', label: 'Active' },
-                                    { value: 'SUSPENDED', label: 'Suspended' },
-                                    { value: 'BLACKLISTED', label: 'Blacklisted' }
-                                ]}
-                                radius="md"
-                                {...form.getInputProps("status")}
-                            />
-                        )}
+                        <Select
+                            label="Category"
+                            placeholder="Select product category"
+                            data={categories.map(c => ({ value: c.id, label: c.name }))}
+                            withAsterisk
+                            radius="md"
+                            {...form.getInputProps("categoryId")}
+                        />
+
+                        <TextInput
+                            label="Description"
+                            placeholder="Product specifications or details"
+                            radius="md"
+                            {...form.getInputProps("description")}
+                        />
+
+                        <Select
+                            label="Status"
+                            placeholder="Select status"
+                            data={[
+                                { value: 'ACTIVE', label: 'Active' },
+                                { value: 'SUSPENDED', label: 'Suspended' },
+                                { value: 'BLACKLISTED', label: 'Blacklisted' }
+                            ]}
+                            radius="md"
+                            {...form.getInputProps("status")}
+                        />
 
                         <Group justify="flex-end" mt="xl">
                             <Button variant="subtle" color="gray" onClick={close} radius="md">
                                 Cancel
                             </Button>
                             <Button type="submit" radius="md" px="xl" variant="filled">
-                                {editingId ? "Save Changes" : "Create Supplier"}
+                                {editingId ? "Save Changes" : "Create Product"}
                             </Button>
                         </Group>
                     </Stack>

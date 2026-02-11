@@ -5,74 +5,65 @@ import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
 
-export function Suppliers() {
+export function ProductCategories() {
     const isMobile = useMediaQuery('(max-width: 768px)');
-    const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [search, setSearch] = useState("");
 
     const form = useForm({
         initialValues: {
-            companyName: "",
-            contactPerson: "",
-            email: "",
-            phone: "",
-            address: "",
+            name: "",
             status: "ACTIVE",
         },
         validate: {
-            companyName: (value) => (value.length < 2 ? 'Company name must have at least 2 letters' : null),
-            email: (value) => (value && !/^\S+@\S+$/.test(value) ? 'Invalid email' : null),
+            name: (value) => (value.length < 2 ? 'Name must have at least 2 letters' : null),
         },
     });
 
-    const fetchSuppliers = () => {
-        api.getSuppliers()
-            .then(setSuppliers)
+    const fetchCategories = () => {
+        api.getProductCategories()
+            .then(setCategories)
             .catch(console.error);
     };
 
     useEffect(() => {
-        fetchSuppliers();
+        fetchCategories();
     }, []);
 
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
-                await api.updateSupplier(editingId, values);
+                await api.updateProductCategory(editingId, values);
             } else {
-                await api.createSupplier(values);
+                await api.createProductCategory(values);
             }
             close();
             form.reset();
             setEditingId(null);
-            fetchSuppliers();
+            fetchCategories();
         } catch (error) {
-            console.error("Error saving supplier:", error);
+            console.error("Error saving category:", error);
         }
     };
 
-    const handleEdit = (supplier: any) => {
-        setEditingId(supplier.id);
+    const handleEdit = (category: any) => {
+        setEditingId(category.id);
         form.setValues({
-            companyName: supplier.companyName,
-            contactPerson: supplier.contactPerson || "",
-            email: supplier.email || "",
-            phone: supplier.phone || "",
-            address: supplier.address || "",
-            status: supplier.status || "ACTIVE",
+            name: category.name,
+            status: category.status || "ACTIVE",
         });
         open();
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("Are you sure you want to delete this supplier?")) {
+        if (window.confirm("Are you sure you want to delete this category?")) {
             try {
-                await api.deleteSupplier(id);
-                fetchSuppliers();
+                await api.deleteProductCategory(id);
+                fetchCategories();
             } catch (error) {
-                console.error("Error deleting supplier:", error);
+                console.error("Error deleting category:", error);
             }
         }
     };
@@ -84,18 +75,15 @@ export function Suppliers() {
         open();
     };
 
-    const filteredSuppliers = suppliers.filter(s =>
-        s.companyName.toLowerCase().includes(search.toLowerCase()) ||
-        (s.contactPerson && s.contactPerson.toLowerCase().includes(search.toLowerCase()))
+    const filteredCategories = categories.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase())
     );
 
-    const rows = filteredSuppliers.map((element: any) => (
+    const rows = filteredCategories.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
-                <Text fw={500}>{element.companyName}</Text>
+                <Text fw={500}>{element.name}</Text>
             </Table.Td>
-            <Table.Td>{element.contactPerson || '-'}</Table.Td>
-            <Table.Td>{element.email || '-'}</Table.Td>
             <Table.Td>
                 <Badge
                     variant="light"
@@ -122,8 +110,8 @@ export function Suppliers() {
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-end" wrap="wrap">
                     <Box>
-                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Suppliers</Title>
-                        <Text c="dimmed" size="sm">Manage your vendor relationships and master data</Text>
+                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Product Categories</Title>
+                        <Text c="dimmed" size="sm">Manage categories for your product catalog</Text>
                     </Box>
                     <Button
                         leftSection={<IconPlus size={18} />}
@@ -134,14 +122,14 @@ export function Suppliers() {
                         gradient={{ from: 'blue', to: 'cyan' }}
                         w={isMobile ? '100%' : 'auto'}
                     >
-                        Add New Supplier
+                        Add New Category
                     </Button>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
                     <Group mb="lg">
                         <TextInput
-                            placeholder="Search suppliers by name or contact..."
+                            placeholder="Search categories by name..."
                             leftSection={<IconSearch size={16} />}
                             value={search}
                             onChange={(e) => setSearch(e.currentTarget.value)}
@@ -150,13 +138,11 @@ export function Suppliers() {
                         />
                     </Group>
 
-                    <Table.ScrollContainer minWidth={800}>
+                    <Table.ScrollContainer minWidth={400}>
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
-                                    <Table.Th>Company Name</Table.Th>
-                                    <Table.Th>Contact Person</Table.Th>
-                                    <Table.Th>Email</Table.Th>
+                                    <Table.Th>Category Name</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                                 </Table.Tr>
@@ -164,8 +150,8 @@ export function Suppliers() {
                             <Table.Tbody>
                                 {rows.length > 0 ? rows : (
                                     <Table.Tr>
-                                        <Table.Td colSpan={5}>
-                                            <Text ta="center" py="xl" c="dimmed">No suppliers found</Text>
+                                        <Table.Td colSpan={3}>
+                                            <Text ta="center" py="xl" c="dimmed">No categories found</Text>
                                         </Table.Td>
                                     </Table.Tr>
                                 )}
@@ -180,11 +166,11 @@ export function Suppliers() {
                 onClose={close}
                 title={
                     <Text fw={700} size="lg">
-                        {editingId ? "Edit Supplier" : "Add New Supplier"}
+                        {editingId ? "Edit Category" : "Add New Category"}
                     </Text>
                 }
                 centered
-                size="lg"
+                size="md"
                 fullScreen={isMobile}
                 radius="md"
                 padding="xl"
@@ -196,59 +182,31 @@ export function Suppliers() {
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="md">
                         <TextInput
-                            label="Company Name"
-                            placeholder="e.g. Acme Corporation"
+                            label="Category Name"
+                            placeholder="e.g. Chargers, Cables, Screen Guards"
                             withAsterisk
                             radius="md"
-                            {...form.getInputProps("companyName")}
-                        />
-                        <Stack gap="md">
-                            <TextInput
-                                label="Contact Person"
-                                placeholder="Full name"
-                                radius="md"
-                                {...form.getInputProps("contactPerson")}
-                            />
-                            <TextInput
-                                label="Email Address"
-                                placeholder="email@example.com"
-                                radius="md"
-                                {...form.getInputProps("email")}
-                            />
-                        </Stack>
-                        <TextInput
-                            label="Phone Number"
-                            placeholder="+1234567890"
-                            radius="md"
-                            {...form.getInputProps("phone")}
-                        />
-                        <TextInput
-                            label="Physical Address"
-                            placeholder="Complete address"
-                            radius="md"
-                            {...form.getInputProps("address")}
+                            {...form.getInputProps("name")}
                         />
 
-                        {editingId && (
-                            <Select
-                                label="Verification Status"
-                                placeholder="Select status"
-                                data={[
-                                    { value: 'ACTIVE', label: 'Active' },
-                                    { value: 'SUSPENDED', label: 'Suspended' },
-                                    { value: 'BLACKLISTED', label: 'Blacklisted' }
-                                ]}
-                                radius="md"
-                                {...form.getInputProps("status")}
-                            />
-                        )}
+                        <Select
+                            label="Status"
+                            placeholder="Select status"
+                            data={[
+                                { value: 'ACTIVE', label: 'Active' },
+                                { value: 'SUSPENDED', label: 'Suspended' },
+                                { value: 'BLACKLISTED', label: 'Blacklisted' }
+                            ]}
+                            radius="md"
+                            {...form.getInputProps("status")}
+                        />
 
                         <Group justify="flex-end" mt="xl">
                             <Button variant="subtle" color="gray" onClick={close} radius="md">
                                 Cancel
                             </Button>
                             <Button type="submit" radius="md" px="xl" variant="filled">
-                                {editingId ? "Save Changes" : "Create Supplier"}
+                                {editingId ? "Save Changes" : "Create Category"}
                             </Button>
                         </Group>
                     </Stack>

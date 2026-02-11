@@ -1,142 +1,168 @@
-import axios from "axios";
+import axios from 'axios';
 
-const API_URL = "http://localhost:3000";
+const BASE_URL = 'http://localhost:3000/v1';
 
-export const client = axios.create({
-    baseURL: API_URL,
+const apiClient = axios.create({
+    baseURL: BASE_URL,
+});
+
+// Add interceptor for JWT
+apiClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem('procurex_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
 });
 
 export const api = {
+    // Auth
+    login: async (params: any) => {
+        const response = await apiClient.post('/auth/login', params);
+        return response.data;
+    },
+    registerUser: async (params: any) => {
+        const response = await apiClient.post('/auth/register', params);
+        return response.data;
+    },
+    getAuthUsers: async () => {
+        const response = await apiClient.get('/auth/users');
+        return response.data;
+    },
+    deleteAuthUser: async (id: string) => {
+        const response = await apiClient.delete(`/auth/users/${id}`);
+        return response.data;
+    },
     getSuppliers: async () => {
-        const response = await client.get("/suppliers");
+        const response = await apiClient.get("/suppliers");
         return response.data;
     },
     createSupplier: async (data: any) => {
-        const response = await client.post("/suppliers", data);
+        const response = await apiClient.post("/suppliers", data);
         return response.data;
     },
     updateSupplier: async (id: string, data: any) => {
-        const response = await client.put(`/suppliers/${id}`, data);
+        const response = await apiClient.put(`/suppliers/${id}`, data);
         return response.data;
     },
     deleteSupplier: async (id: string) => {
-        await client.delete(`/suppliers/${id}`);
+        await apiClient.delete(`/suppliers/${id}`);
     },
     getOrders: async () => {
-        const response = await client.get("/orders");
+        const response = await apiClient.get("/orders");
         return response.data;
     },
     getOrder: async (id: string) => {
-        const response = await client.get(`/orders/${id}`);
+        const response = await apiClient.get(`/orders/${id}`);
         return response.data;
     },
     createOrder: async (data: any) => {
-        const response = await client.post("/orders", data);
+        const response = await apiClient.post("/orders", data);
         return response.data;
     },
     updateOrder: async (id: string, data: any) => {
-        const response = await client.put(`/orders/${id}`, data);
+        const response = await apiClient.put(`/orders/${id}`, data);
         return response.data;
     },
     deleteOrder: async (id: string) => {
-        await client.delete(`/orders/${id}`);
+        await apiClient.delete(`/orders/${id}`);
     },
     // Users
     getUsers: async () => {
-        const response = await client.get("/users");
+        const response = await apiClient.get("/users");
         return response.data;
     },
     seedUsers: async () => {
-        const response = await client.post("/users/seed");
+        const response = await apiClient.post("/users/seed");
         return response.data;
     },
 
     // Approvals
     submitApproval: async (data: any) => {
-        const response = await client.post("/approvals", data);
+        const response = await apiClient.post("/approvals", data);
         return response.data;
     },
     getApprovalHistory: async (poId: string) => {
-        const response = await client.get(`/approvals/history/${poId}`);
+        const response = await apiClient.get(`/approvals/history/${poId}`);
         return response.data;
     },
 
     // Tracking
     addTrackingUpdate: async (data: any) => {
-        const response = await client.post("/tracking", data);
+        const response = await apiClient.post("/tracking", data);
         return response.data;
     },
     getTrackingHistory: async (poId: string) => {
-        const response = await client.get(`/tracking/${poId}`);
+        const response = await apiClient.get(`/tracking/${poId}`);
         return response.data;
     },
 
     // Dashboard
     getDashboardStats: async () => {
-        const response = await client.get("/dashboard/stats");
+        const response = await apiClient.get("/dashboard/stats");
         return response.data;
     },
     getDelayedOrders: async () => {
-        const response = await client.get("/dashboard/delayed");
+        const response = await apiClient.get("/dashboard/delayed");
         return response.data;
     },
     getOrdersByStatus: async () => {
-        const response = await client.get("/dashboard/by-status");
+        const response = await apiClient.get("/dashboard/by-status");
         return response.data;
     },
     getOrdersByDivision: async () => {
-        const response = await client.get("/dashboard/by-division");
+        const response = await apiClient.get("/dashboard/by-division");
         return response.data;
     },
 
     // Divisions
     getDivisions: async () => {
-        const response = await client.get("/divisions");
+        const response = await apiClient.get("/divisions");
         return response.data;
     },
     createDivision: async (data: any) => {
-        const response = await client.post("/divisions", data);
+        const response = await apiClient.post("/divisions", data);
         return response.data;
     },
     updateDivision: async (id: string, data: any) => {
-        const response = await client.put(`/divisions/${id}`, data);
+        const response = await apiClient.put(`/divisions/${id}`, data);
         return response.data;
     },
     deleteDivision: async (id: string) => {
-        await client.delete(`/divisions/${id}`);
+        await apiClient.delete(`/divisions/${id}`);
     },
 
     // Product Categories
     getProductCategories: async () => {
-        const response = await client.get("/product-categories");
+        const response = await apiClient.get("/product-categories");
         return response.data;
     },
     createProductCategory: async (data: any) => {
-        const response = await client.post("/product-categories", data);
+        const response = await apiClient.post("/product-categories", data);
         return response.data;
     },
     updateProductCategory: async (id: string, data: any) => {
-        const response = await client.put(`/product-categories/${id}`, data);
+        const response = await apiClient.put(`/product-categories/${id}`, data);
         return response.data;
     },
     deleteProductCategory: async (id: string) => {
-        await client.delete(`/product-categories/${id}`);
+        await apiClient.delete(`/product-categories/${id}`);
     },
 
     // Products
     getProducts: async () => {
-        const response = await client.get("/products");
+        const response = await apiClient.get("/products");
         return response.data;
     },
     createProduct: async (data: any) => {
-        const response = await client.post("/products", data);
+        const response = await apiClient.post("/products", data);
         return response.data;
     },
     updateProduct: async (id: string, data: any) => {
-        const response = await client.put(`/products/${id}`, data);
+        const response = await apiClient.put(`/products/${id}`, data);
         return response.data;
     },
     deleteProduct: async (id: string) => {
-        await client.delete(`/products/${id}`);
+        await apiClient.delete(`/products/${id}`);
     },
 };

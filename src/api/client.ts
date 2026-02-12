@@ -106,10 +106,6 @@ export const api = {
         const response = await apiClient.get("/dashboard/delayed");
         return response.data;
     },
-    getOrdersByStatus: async () => {
-        const response = await apiClient.get("/dashboard/by-status");
-        return response.data;
-    },
     getOrdersByDivision: async () => {
         const response = await apiClient.get("/dashboard/by-division");
         return response.data;
@@ -164,5 +160,19 @@ export const api = {
     },
     deleteProduct: async (id: string) => {
         await apiClient.delete(`/products/${id}`);
+    },
+
+    // Inventory
+    getInventory: async () => {
+        const response = await apiClient.get("/inventory");
+        return response.data;
+    },
+    getInventoryHistory: async (productId: string) => {
+        const response = await apiClient.get(`/inventory/history/${productId}`);
+        return response.data;
+    },
+    updateInventory: async (data: any) => {
+        const response = await apiClient.post("/inventory/update", data);
+        return response.data;
     },
 };

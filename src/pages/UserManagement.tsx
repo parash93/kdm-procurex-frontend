@@ -139,7 +139,7 @@ export default function UserManagement() {
             </Table.Td>
             <Table.Td>
                 <Text size="xs" c="dimmed">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {new Date(user.createdAt).toLocaleString()}
                 </Text>
             </Table.Td>
             <Table.Td>

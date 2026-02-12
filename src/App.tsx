@@ -10,6 +10,7 @@ import { ProductCategories } from "./pages/ProductCategories";
 import { Products } from "./pages/Products";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
+import { Inventory } from "./pages/Inventory";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Notifications } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="product-categories" element={<ProductCategories />} />
               <Route path="products" element={<Products />} />
               <Route path="orders" element={<Orders />} />
+              <Route path="inventory" element={<Inventory />} />
               <Route path="users" element={
                 <ProtectedRoute role="ADMIN">
                   <UserManagement />

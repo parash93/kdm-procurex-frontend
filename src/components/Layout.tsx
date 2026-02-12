@@ -27,6 +27,7 @@ export function Layout() {
         { icon: IconCategory, label: 'Product Categories', to: '/product-categories' },
         { icon: IconPackage, label: 'Products', to: '/products' },
         { icon: IconShoppingCart, label: 'Orders', to: '/orders' },
+        { icon: IconPackage, label: 'Inventory', to: '/inventory' },
     ];
 
     if (isAdmin) {
@@ -76,13 +77,13 @@ export function Layout() {
 
                     <Group gap="md">
                         <Box hiddenFrom="xs">
-                            <Text size="sm" fw={600}>{user?.email}</Text>
+                            <Text size="sm" fw={600}>{user?.username}</Text>
                             <Badge size="xs" variant="light">{user?.role}</Badge>
                         </Box>
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>
                                 <ActionIcon variant="light" size="lg" radius="md">
-                                    <Avatar size="sm" color="blue" radius="md">{user?.email[0].toUpperCase()}</Avatar>
+                                    <Avatar size="sm" color="blue" radius="md">{user?.username[0].toUpperCase()}</Avatar>
                                 </ActionIcon>
                             </Menu.Target>
                             <Menu.Dropdown>
@@ -117,9 +118,9 @@ export function Layout() {
 
                     <Box pt="md" style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
                         <Group gap="sm" p="xs">
-                            <Avatar color="blue" radius="xl">{user?.email[0].toUpperCase()}</Avatar>
+                            <Avatar color="blue" radius="xl">{user?.username[0].toUpperCase()}</Avatar>
                             <Box style={{ flex: 1 }}>
-                                <Text size="xs" fw={700} style={{ maxWidth: 150 }} truncate="end">{user?.email}</Text>
+                                <Text size="xs" fw={700} style={{ maxWidth: 150 }} truncate="end">{user?.username}</Text>
                                 <Text size="calc(0.6rem)" c="dimmed" fw={500}>{user?.role}</Text>
                             </Box>
                             <ActionIcon variant="subtle" color="gray" onClick={logout}>

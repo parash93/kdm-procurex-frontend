@@ -1,12 +1,14 @@
-import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconSearch } from "@tabler/icons-react";
+import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box, NumberInput } from "@mantine/core";
+import { IconPlus, IconPencil, IconTrash, IconSearch, IconClock } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 export function Products() {
     const isMobile = useMediaQuery('(max-width: 768px)');
+    const { isAdmin } = useAuth();
     const [products, setProducts] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
@@ -18,11 +20,13 @@ export function Products() {
             name: "",
             categoryId: "",
             description: "",
+            minDeliveryDays: 0,
             status: "ACTIVE",
         },
         validate: {
             name: (value) => (value.length < 2 ? 'Name must have at least 2 letters' : null),
             categoryId: (value) => (!value ? 'Category is required' : null),
+            minDeliveryDays: (value) => (value < 0 ? 'Cannot be negative' : null),
         },
     });
 
@@ -32,10 +36,12 @@ export function Products() {
                 api.getProducts(),
                 api.getProductCategories()
             ]);
-            setProducts(productsData);
-            setCategories(categoriesData);
+            setProducts(productsData || []);
+            setCategories(categoriesData || []);
         } catch (error) {
             console.error("Error fetching products/categories:", error);
+            setProducts([]);
+            setCategories([]);
         }
     };
 
@@ -60,17 +66,20 @@ export function Products() {
     };
 
     const handleEdit = (product: any) => {
+        if (!isAdmin) return;
         setEditingId(product.id);
         form.setValues({
             name: product.name,
             categoryId: product.categoryId,
             description: product.description || "",
+            minDeliveryDays: product.minDeliveryDays || 0,
             status: product.status || "ACTIVE",
         });
         open();
     };
 
     const handleDelete = async (id: string) => {
+        if (!isAdmin) return;
         if (window.confirm("Are you sure you want to delete this product?")) {
             try {
                 await api.deleteProduct(id);
@@ -82,6 +91,7 @@ export function Products() {
     };
 
     const handleAdd = () => {
+        if (!isAdmin) return;
         setEditingId(null);
         form.reset();
         form.setFieldValue('status', 'ACTIVE');
@@ -105,6 +115,12 @@ export function Products() {
                 <Badge variant="dot" color="blue">{element.category?.name || 'Uncategorized'}</Badge>
             </Table.Td>
             <Table.Td>
+                <Group gap="xs">
+                    <IconClock size={14} color="gray" />
+                    <Text size="sm">{element.minDeliveryDays} Days</Text>
+                </Group>
+            </Table.Td>
+            <Table.Td>
                 <Badge
                     variant="light"
                     color={element.status === 'ACTIVE' ? 'green' : element.status === 'BLACKLISTED' ? 'red' : 'yellow'}
@@ -114,12 +130,16 @@ export function Products() {
             </Table.Td>
             <Table.Td>
                 <Group gap="xs" justify="flex-end">
-                    <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(element)}>
-                        <IconPencil size={18} />
-                    </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
-                        <IconTrash size={18} />
-                    </ActionIcon>
+                    {isAdmin && (
+                        <>
+                            <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(element)}>
+                                <IconPencil size={18} />
+                            </ActionIcon>
+                            <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
+                                <IconTrash size={18} />
+                            </ActionIcon>
+                        </>
+                    )}
                 </Group>
             </Table.Td>
         </Table.Tr>
@@ -158,12 +178,13 @@ export function Products() {
                         />
                     </Group>
 
-                    <Table.ScrollContainer minWidth={700}>
+                    <Table.ScrollContainer minWidth={800}>
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Product Details</Table.Th>
                                     <Table.Th>Category</Table.Th>
+                                    <Table.Th>Min. Delivery</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                                 </Table.Tr>
@@ -171,7 +192,7 @@ export function Products() {
                             <Table.Tbody>
                                 {rows.length > 0 ? rows : (
                                     <Table.Tr>
-                                        <Table.Td colSpan={4}>
+                                        <Table.Td colSpan={5}>
                                             <Text ta="center" py="xl" c="dimmed">No products found</Text>
                                         </Table.Td>
                                     </Table.Tr>
@@ -217,6 +238,14 @@ export function Products() {
                             withAsterisk
                             radius="md"
                             {...form.getInputProps("categoryId")}
+                        />
+
+                        <NumberInput
+                            label="Minimum Delivery Time (Days)"
+                            placeholder="Number of days"
+                            min={0}
+                            radius="md"
+                            {...form.getInputProps("minDeliveryDays")}
                         />
 
                         <TextInput

@@ -15,11 +15,11 @@ import {
 import {
     IconShoppingCart,
     IconClock,
-    IconTruck,
     IconAlertTriangle,
     IconBuildingSkyscraper,
     IconPackage,
-    IconCategory
+    IconCategory,
+    IconCheck
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -50,26 +50,37 @@ export function Dashboard() {
 
     const statCards = stats ? [
         { label: 'Active Orders', value: stats.activeOrders, icon: IconShoppingCart, color: 'blue' },
-        { label: 'Pending Approvals', value: stats.pendingApprovals, icon: IconClock, color: 'orange' },
+        { label: 'Pending L1', value: stats.statusCounts?.PENDING_L1 || 0, icon: IconClock, color: 'orange' },
+        { label: 'Pending L2', value: stats.statusCounts?.APPROVED_L1 || 0, icon: IconClock, color: 'violet' },
         { label: 'Delayed Orders', value: stats.delayedOrders, icon: IconAlertTriangle, color: 'red' },
-        { label: 'Total Suppliers', value: stats.totalSuppliers, icon: IconTruck, color: 'green' },
+        { label: 'Delivered', value: stats.statusCounts?.DELIVERED || 0, icon: IconCheck, color: 'teal' },
     ] : [];
+
+    const statusColors: Record<string, string> = {
+        DRAFT: 'gray',
+        PENDING_L1: 'yellow',
+        APPROVED_L1: 'blue',
+        REJECTED_L1: 'red',
+        ORDER_PLACED: 'green',
+        IN_PRODUCTION: 'orange',
+        DELIVERED: 'teal'
+    };
 
     return (
         <Box pb="xl">
             <Stack gap="xl">
                 <Box>
-                    <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Dashboard</Title>
-                    <Text c="dimmed" size="sm">Real-time procurement metrics and alerts.</Text>
+                    <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Procurement Dashboard</Title>
+                    <Text c="dimmed" size="sm">Real-time status tracking and inventory metrics.</Text>
                 </Box>
 
                 {delayedOrders.length > 0 && (
                     <Alert variant="light" color="red" title="Delayed Orders Detected" icon={<IconAlertTriangle size={16} />}>
-                        There are {delayedOrders.length} orders that have passed their expected delivery date.
+                        There are {delayedOrders.length} orders with items past their expected delivery date.
                     </Alert>
                 )}
 
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="xl">
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }} spacing="xl">
                     {statCards.map((stat) => (
                         <Paper key={stat.label} withBorder p="xl" radius="md" shadow="sm">
                             <Group justify="space-between">
@@ -91,30 +102,18 @@ export function Dashboard() {
 
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
                     <Paper withBorder p="xl" radius="md" shadow="sm">
-                        <Title order={3} mb="lg">Resources Overview</Title>
-                        <SimpleGrid cols={3} spacing="md">
-                            <Stack gap={5} ta="center">
-                                <ThemeIcon size="lg" radius="md" variant="light" color="indigo" mx="auto">
-                                    <IconBuildingSkyscraper size={20} />
-                                </ThemeIcon>
-                                <Text fw={700} size="lg">{stats?.totalDivisions || 0}</Text>
-                                <Text size="xs" c="dimmed">Divisions</Text>
-                            </Stack>
-                            <Stack gap={5} ta="center">
-                                <ThemeIcon size="lg" radius="md" variant="light" color="teal" mx="auto">
-                                    <IconCategory size={20} />
-                                </ThemeIcon>
-                                <Text fw={700} size="lg">{stats?.totalCategories || 0}</Text>
-                                <Text size="xs" c="dimmed">Categories</Text>
-                            </Stack>
-                            <Stack gap={5} ta="center">
-                                <ThemeIcon size="lg" radius="md" variant="light" color="cyan" mx="auto">
-                                    <IconPackage size={20} />
-                                </ThemeIcon>
-                                <Text fw={700} size="lg">{stats?.totalProducts || 0}</Text>
-                                <Text size="xs" c="dimmed">Products</Text>
-                            </Stack>
-                        </SimpleGrid>
+                        <Title order={3} mb="lg">Order Flow Summary</Title>
+                        <Stack gap="xs">
+                            {stats?.statusCounts && Object.entries(stats.statusCounts).map(([status, count]) => (
+                                <Group key={status} justify="space-between" p="xs" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
+                                    <Group gap="sm">
+                                        <Badge color={statusColors[status] || 'gray'} variant="filled" size="sm" />
+                                        <Text fw={500} size="sm">{status.replace(/_/g, ' ')}</Text>
+                                    </Group>
+                                    <Text fw={700}>{count as number}</Text>
+                                </Group>
+                            ))}
+                        </Stack>
                     </Paper>
 
                     <Paper withBorder p="xl" radius="md" shadow="sm">
@@ -136,7 +135,7 @@ export function Dashboard() {
                                         </Table.Td>
                                         <Table.Td ta="right">
                                             <Group gap={4} justify="flex-end">
-                                                <Text fw={900} size="lg" c="blue">${div.totalAmount.toLocaleString()}</Text>
+                                                <Text fw={900} size="lg" c="blue">INR {div.totalAmount.toLocaleString()}</Text>
                                             </Group>
                                         </Table.Td>
                                     </Table.Tr>
@@ -145,6 +144,33 @@ export function Dashboard() {
                         </Table>
                     </Paper>
                 </SimpleGrid>
+
+                <Paper withBorder p="xl" radius="md" shadow="sm">
+                    <Title order={3} mb="lg">Resources Overview</Title>
+                    <SimpleGrid cols={3} spacing="md">
+                        <Stack gap={5} ta="center">
+                            <ThemeIcon size="lg" radius="md" variant="light" color="indigo" mx="auto">
+                                <IconBuildingSkyscraper size={20} />
+                            </ThemeIcon>
+                            <Text fw={700} size="lg">{stats?.totalDivisions || 0}</Text>
+                            <Text size="xs" c="dimmed">Divisions</Text>
+                        </Stack>
+                        <Stack gap={5} ta="center">
+                            <ThemeIcon size="lg" radius="md" variant="light" color="teal" mx="auto">
+                                <IconCategory size={20} />
+                            </ThemeIcon>
+                            <Text fw={700} size="lg">{stats?.totalCategories || 0}</Text>
+                            <Text size="xs" c="dimmed">Categories</Text>
+                        </Stack>
+                        <Stack gap={5} ta="center">
+                            <ThemeIcon size="lg" radius="md" variant="light" color="cyan" mx="auto">
+                                <IconPackage size={20} />
+                            </ThemeIcon>
+                            <Text fw={700} size="lg">{stats?.totalProducts || 0}</Text>
+                            <Text size="xs" c="dimmed">Products</Text>
+                        </Stack>
+                    </SimpleGrid>
+                </Paper>
 
                 {delayedOrders.length > 0 && (
                     <Card withBorder radius="md" p="xl" shadow="sm">
@@ -155,21 +181,29 @@ export function Dashboard() {
                                     <Table.Tr>
                                         <Table.Th>PO Number</Table.Th>
                                         <Table.Th>Supplier</Table.Th>
-                                        <Table.Th>Expected Delivery</Table.Th>
+                                        <Table.Th>Next Scheduled Delivery</Table.Th>
                                         <Table.Th>Status</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {delayedOrders.map((o) => (
-                                        <Table.Tr key={o.id}>
-                                            <Table.Td><Text fw={700} c="red">{o.poNumber}</Text></Table.Td>
-                                            <Table.Td>{o.supplier?.companyName}</Table.Td>
-                                            <Table.Td>{new Date(o.expectedDeliveryDate).toLocaleDateString()}</Table.Td>
-                                            <Table.Td>
-                                                <Badge color="red" variant="outline">{o.status}</Badge>
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    ))}
+                                    {delayedOrders.map((o) => {
+                                        const earliestDelay = o.items
+                                            .filter((i: any) => i.expectedDeliveryDate)
+                                            .sort((a: any, b: any) => new Date(a.expectedDeliveryDate).getTime() - new Date(b.expectedDeliveryDate).getTime())[0];
+
+                                        return (
+                                            <Table.Tr key={o.id}>
+                                                <Table.Td><Text fw={700} c="red">{o.poNumber}</Text></Table.Td>
+                                                <Table.Td>{o.supplier?.companyName}</Table.Td>
+                                                <Table.Td>
+                                                    {earliestDelay ? new Date(earliestDelay.expectedDeliveryDate).toLocaleString() : 'N/A'}
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Badge color="red" variant="outline">{o.status}</Badge>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
                                 </Table.Tbody>
                             </Table>
                         </Table.ScrollContainer>

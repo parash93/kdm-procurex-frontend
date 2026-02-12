@@ -147,9 +147,11 @@ export function Orders() {
         }
     };
 
-    const calculateItemTotal = (index: number) => {
+    const calculateItemTotal = (index: number, quantity?: number, unitPrice?: number) => {
         const item = poForm.values.items[index];
-        const total = (item.quantity || 0) * (item.unitPrice || 0);
+        const q = quantity !== undefined ? quantity : (item.quantity || 0);
+        const u = unitPrice !== undefined ? unitPrice : (item.unitPrice || 0);
+        const total = q * u;
         poForm.setFieldValue(`items.${index}.totalPrice`, total);
     };
 
@@ -283,6 +285,12 @@ export function Orders() {
         APPROVED: 'green',
         REJECTED: 'red',
         SENT_TO_SUPPLIER: 'blue',
+        IN_PRODUCTION: 'orange',
+        QUALITY_INSPECTION: 'pink',
+        READY_TO_SHIP: 'cyan',
+        SHIPPED: 'indigo',
+        IN_TRANSIT: 'violet',
+        PORT_CLEARANCE: 'lime',
         DELIVERED: 'teal',
         CLOSED: 'dark'
     };
@@ -335,7 +343,7 @@ export function Orders() {
                         <Select
                             label="Filter Status"
                             placeholder="All Statuses"
-                            data={['ALL', 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'SENT_TO_SUPPLIER', 'DELIVERED', 'CLOSED']}
+                            data={['ALL', 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'SENT_TO_SUPPLIER', 'IN_PRODUCTION', 'QUALITY_INSPECTION', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'PORT_CLEARANCE', 'DELIVERED', 'CLOSED']}
                             value={filterStatus}
                             onChange={(val) => setFilterStatus(val || 'ALL')}
                             style={{ width: 180 }}
@@ -503,8 +511,9 @@ export function Orders() {
                                                     radius="md"
                                                     {...poForm.getInputProps(`items.${index}.quantity`)}
                                                     onChange={(val) => {
-                                                        poForm.setFieldValue(`items.${index}.quantity`, Number(val));
-                                                        calculateItemTotal(index);
+                                                        const q = Number(val) || 0;
+                                                        poForm.setFieldValue(`items.${index}.quantity`, q);
+                                                        calculateItemTotal(index, q, undefined);
                                                     }}
                                                 />
                                             </Grid.Col>
@@ -515,8 +524,9 @@ export function Orders() {
                                                     radius="md"
                                                     {...poForm.getInputProps(`items.${index}.unitPrice`)}
                                                     onChange={(val) => {
-                                                        poForm.setFieldValue(`items.${index}.unitPrice`, Number(val));
-                                                        calculateItemTotal(index);
+                                                        const u = Number(val) || 0;
+                                                        poForm.setFieldValue(`items.${index}.unitPrice`, u);
+                                                        calculateItemTotal(index, undefined, u);
                                                     }}
                                                 />
                                             </Grid.Col>
@@ -658,7 +668,16 @@ export function Orders() {
                                             <Timeline.Item
                                                 key={update.id}
                                                 bullet={index === 0 ? <IconCheck size={12} /> : null}
-                                                title={update.stage}
+                                                title={
+                                                    <Group justify="space-between" align="center">
+                                                        <Text fw={700}>{update.stage}</Text>
+                                                        {update.updatedByUser && (
+                                                            <Badge variant="dot" size="sm" color="gray">
+                                                                {update.updatedByUser.email}
+                                                            </Badge>
+                                                        )}
+                                                    </Group>
+                                                }
                                             >
                                                 <Text c="dimmed" size="xs">{new Date(update.timestamp).toLocaleString()}</Text>
                                                 {update.notes && <Text size="sm" mt={4}>{update.notes}</Text>}
@@ -701,7 +720,7 @@ export function Orders() {
                                 }}>
                                     Delete PO
                                 </Button>
-                                {['APPROVED', 'SENT_TO_SUPPLIER', 'DELIVERED'].includes(selectedOrder.status) && (
+                                {['APPROVED', 'SENT_TO_SUPPLIER', 'IN_PRODUCTION', 'QUALITY_INSPECTION', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'PORT_CLEARANCE', 'DELIVERED'].includes(selectedOrder.status) && (
                                     <Button variant="light" leftSection={<IconShip size={16} />} onClick={handleOpenTracking}>
                                         Record Tracking Update
                                     </Button>

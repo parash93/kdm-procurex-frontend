@@ -34,12 +34,12 @@ export default function UserManagement() {
 
     const form = useForm({
         initialValues: {
-            email: '',
+            username: '',
             password: '',
             role: 'OPERATIONS',
         },
         validate: {
-            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+            username: (value) => (value.length >= 3 ? null : 'Username must be at least 3 characters'),
             password: (value) => (value.length >= 6 ? null : 'Password must be at least 6 characters'),
         },
     });
@@ -68,7 +68,7 @@ export default function UserManagement() {
             fetchUsers();
             notifications.show({
                 title: 'User Created',
-                message: `${values.email} has been registered successfully.`,
+                message: `${values.username} has been registered successfully.`,
                 color: 'green'
             });
         } catch (error: any) {
@@ -80,8 +80,8 @@ export default function UserManagement() {
         }
     };
 
-    const handleDeleteUser = async (id: string, email: string) => {
-        if (window.confirm(`Are you sure you want to delete user ${email}?`)) {
+    const handleDeleteUser = async (id: string, username: string) => {
+        if (window.confirm(`Are you sure you want to delete user ${username}?`)) {
             try {
                 await api.deleteAuthUser(id);
                 fetchUsers();
@@ -101,7 +101,7 @@ export default function UserManagement() {
     };
 
     const filteredUsers = users.filter(u =>
-        u.email.toLowerCase().includes(search.toLowerCase())
+        u.username.toLowerCase().includes(search.toLowerCase())
     );
 
     const roleColors: Record<string, string> = {
@@ -124,10 +124,10 @@ export default function UserManagement() {
                         alignItems: 'center',
                         justifyContent: 'center'
                     }}>
-                        <Text fw={700} c="blue">{user.email[0].toUpperCase()}</Text>
+                        <Text fw={700} c="blue">{user.username[0].toUpperCase()}</Text>
                     </Box>
                     <Box>
-                        <Text size="sm" fw={500}>{user.email}</Text>
+                        <Text size="sm" fw={500}>{user.username}</Text>
                         <Text size="xs" c="dimmed">ID: {user.id.slice(0, 8)}...</Text>
                     </Box>
                 </Group>
@@ -147,7 +147,7 @@ export default function UserManagement() {
                     <ActionIcon
                         variant="subtle"
                         color="red"
-                        onClick={() => handleDeleteUser(user.id, user.email)}
+                        onClick={() => handleDeleteUser(user.id, user.username)}
                         disabled={user.role === 'ADMIN' && users.filter(u => u.role === 'ADMIN').length === 1}
                     >
                         <IconTrash size={16} />
@@ -215,11 +215,11 @@ export default function UserManagement() {
                 <form onSubmit={form.onSubmit(handleCreateUser)}>
                     <Stack gap="md">
                         <TextInput
-                            label="Email Address"
-                            placeholder="user@example.com"
+                            label="Username"
+                            placeholder="e.g. john_doe"
                             leftSection={<IconMail size={16} />}
                             required
-                            {...form.getInputProps('email')}
+                            {...form.getInputProps('username')}
                         />
                         <TextInput
                             label="Initial Password"

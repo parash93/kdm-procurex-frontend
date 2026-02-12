@@ -673,7 +673,7 @@ export function Orders() {
                                                         <Text fw={700}>{update.stage}</Text>
                                                         {update.updatedByUser && (
                                                             <Badge variant="dot" size="sm" color="gray">
-                                                                {update.updatedByUser.email}
+                                                                {update.updatedByUser.username}
                                                             </Badge>
                                                         )}
                                                     </Group>

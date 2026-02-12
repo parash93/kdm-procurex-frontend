@@ -27,11 +27,11 @@ export default function Login() {
 
     const form = useForm({
         initialValues: {
-            email: '',
+            username: '',
             password: '',
         },
         validate: {
-            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+            username: (value) => (value.length > 0 ? null : 'Username is required'),
         },
     });
 
@@ -39,7 +39,7 @@ export default function Login() {
         setLoading(true);
         setError(null);
         try {
-            await login(values.email, values.password);
+            await login(values.username, values.password);
             navigate('/');
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || 'Login failed. Please try again.');
@@ -90,8 +90,8 @@ export default function Login() {
                             )}
 
                             <TextInput
-                                label={<Text c="gray.3" size="sm" fw={500}>Email Address</Text>}
-                                placeholder="admin@kdm.com"
+                                label={<Text c="gray.3" size="sm" fw={500}>Username</Text>}
+                                placeholder="e.g. admin"
                                 required
                                 size="md"
                                 radius="md"
@@ -103,7 +103,7 @@ export default function Login() {
                                         borderColor: 'rgba(255, 255, 255, 0.2)'
                                     }
                                 }}
-                                {...form.getInputProps('email')}
+                                {...form.getInputProps('username')}
                             />
                             <PasswordInput
                                 label={<Text c="gray.3" size="sm" fw={500}>Password</Text>}

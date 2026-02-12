@@ -3,14 +3,14 @@ import { api } from '../api/client';
 
 interface User {
     id: string;
-    email: string;
+    username: string;
     role: string;
 }
 
 interface AuthContextType {
     user: User | null;
     token: string | null;
-    login: (email: string, password?: string) => Promise<void>;
+    login: (username: string, password?: string) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
     isAdmin: boolean;
@@ -29,8 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [token]);
 
-    const login = async (email: string, password?: string) => {
-        const response = await api.login({ email, password });
+    const login = async (username: string, password?: string) => {
+        const response = await api.login({ username, password });
         const { user: userData, token: jwtToken } = response;
 
         setUser(userData);

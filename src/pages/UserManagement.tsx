@@ -80,10 +80,10 @@ export default function UserManagement() {
         }
     };
 
-    const handleDeleteUser = async (id: string, username: string) => {
+    const handleDeleteUser = async (id: number, username: string) => {
         if (window.confirm(`Are you sure you want to delete user ${username}?`)) {
             try {
-                await api.deleteAuthUser(id);
+                await api.deleteAuthUser(Number(id));
                 fetchUsers();
                 notifications.show({
                     title: 'User Deleted',
@@ -128,7 +128,7 @@ export default function UserManagement() {
                     </Box>
                     <Box>
                         <Text size="sm" fw={500}>{user.username}</Text>
-                        <Text size="xs" c="dimmed">ID: {user.id.slice(0, 8)}...</Text>
+                        <Text size="xs" c="dimmed">ID: {user.id}</Text>
                     </Box>
                 </Group>
             </Table.Td>

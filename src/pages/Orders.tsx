@@ -17,8 +17,7 @@ import {
     Grid,
     ScrollArea,
     Card,
-    Timeline,
-    Alert,
+    Timeline
 } from "@mantine/core";
 import {
     IconPlus,
@@ -33,7 +32,6 @@ import {
     IconClock,
     IconShoppingCart,
     IconPackage,
-    IconAlertTriangle
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useMediaQuery, useDisclosure } from "@mantine/hooks";
@@ -163,20 +161,19 @@ export function Orders() {
         poForm.setFieldValue(`items.${index}.totalPrice`, total);
     };
 
-    const grandTotal = poForm.values.items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+    //const grandTotal = poForm.values.items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
 
     const handleViewDetails = async (order: any) => {
         setSelectedOrder(order);
         try {
-            const [tracking, inventoryData] = await Promise.all([
+            const [tracking] = await Promise.all([
                 api.getTrackingHistory(order.id),
-                api.getInventory()
+                // api.getInventory()
             ]);
 
             // Map inventory quantity to items
             const enrichedItems = order.items.map((item: any) => {
-                const inv = inventoryData.find((i: any) => i.product?.id === item.productId);
-                return { ...item, availableStock: inv?.quantity || 0 };
+                return { ...item, availableStock: 0 };
             });
 
             setSelectedOrder({ ...order, items: enrichedItems });
@@ -217,15 +214,15 @@ export function Orders() {
 
         // Strict check for stock before L2 approval
         if (level === 2 && decision === 'APPROVED') {
-            const insufficient = selectedOrder.items.some((item: any) => item.availableStock < item.quantity);
-            if (insufficient) {
-                notifications.show({
-                    title: "Insufficient Stock",
-                    message: "Cannot approve Level 2: One or more items exceed available inventory.",
-                    color: "red"
-                });
-                return;
-            }
+            // const insufficient = selectedOrder.items.some((item: any) => item.availableStock < item.quantity);
+            // if (insufficient) {
+            //     notifications.show({
+            //         title: "Insufficient Stock",
+            //         message: "Cannot approve Level 2: One or more items exceed available inventory.",
+            //         color: "red"
+            //     });
+            //     return;
+            // }
         }
 
         approvalForm.setValues({
@@ -263,11 +260,11 @@ export function Orders() {
         setIsEditing(true);
         setSelectedOrder(order);
         poForm.setValues({
-            supplierId: order.supplierId,
-            divisionId: order.divisionId || "",
+            supplierId: order.supplierId.toString(),
+            divisionId: order.divisionId.toString() || "",
             remarks: order.remarks || "",
             items: order.items.map((item: any) => ({
-                productId: item.productId || "",
+                productId: item.productId.toString() || "",
                 productName: item.productName || "",
                 sku: item.sku || "",
                 quantity: item.quantity,
@@ -337,9 +334,9 @@ export function Orders() {
                     <Text size="sm">{element.division?.name || '-'}</Text>
                 </Group>
             </Table.Td>
-            <Table.Td>
+            {/* <Table.Td>
                 <Text fw={600}>INR {element.items.reduce((sum: number, item: any) => sum + Number(item.totalPrice), 0).toLocaleString()}</Text>
-            </Table.Td>
+            </Table.Td> */}
             <Table.Td>
                 <Badge variant="light" color={statusColors[element.status] || 'blue'}>
                     {element.status.replace(/_/g, ' ')}
@@ -394,7 +391,7 @@ export function Orders() {
                                     <Table.Th>PO Details</Table.Th>
                                     <Table.Th>Supplier</Table.Th>
                                     <Table.Th>Division</Table.Th>
-                                    <Table.Th>Total Amount</Table.Th>
+                                    {/* <Table.Th>Total Amount</Table.Th> */}
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                                 </Table.Tr>
@@ -430,7 +427,7 @@ export function Orders() {
                                 <Select
                                     label="Supplier"
                                     placeholder="Select supplier"
-                                    data={suppliers.map(s => ({ value: s.id, label: s.companyName }))}
+                                    data={suppliers.map(s => ({ value: s.id + "", label: s.companyName }))}
                                     withAsterisk
                                     radius="md"
                                     leftSection={<IconUser size={16} />}
@@ -441,7 +438,7 @@ export function Orders() {
                                 <Select
                                     label="Division"
                                     placeholder="Select division"
-                                    data={divisions.map(d => ({ value: d.id, label: d.name }))}
+                                    data={divisions.map(d => ({ value: d.id + "", label: d.name }))}
                                     radius="md"
                                     leftSection={<IconBuildingSkyscraper size={16} />}
                                     {...poForm.getInputProps('divisionId')}
@@ -478,7 +475,7 @@ export function Orders() {
                                                     <Select
                                                         label="Product Lookup"
                                                         placeholder="Search products"
-                                                        data={products.map(p => ({ value: p.id, label: p.name }))}
+                                                        data={products.map(p => ({ value: p.id + "", label: p.name }))}
                                                         searchable
                                                         onChange={(val) => handleProductSelect(index, val || "")}
                                                         radius="md"
@@ -512,7 +509,7 @@ export function Orders() {
                                                         }}
                                                     />
                                                 </Grid.Col>
-                                                <Grid.Col span={{ base: 6, md: 3 }}>
+                                                {/* <Grid.Col span={{ base: 6, md: 3 }}>
                                                     <NumberInput
                                                         label="Unit Price (INR)"
                                                         radius="md"
@@ -523,7 +520,7 @@ export function Orders() {
                                                             calculateItemTotal(index, undefined, u);
                                                         }}
                                                     />
-                                                </Grid.Col>
+                                                </Grid.Col> */}
                                                 <Grid.Col span={{ base: 12, md: 6 }}>
                                                     <TextInput
                                                         label="Expected Delivery Date"
@@ -544,10 +541,10 @@ export function Orders() {
                             <Button variant="light" leftSection={<IconPlus size={16} />} onClick={handleAddItem}>
                                 Add Item
                             </Button>
-                            <Box ta="right">
+                            {/* <Box ta="right">
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Total Amount</Text>
                                 <Title order={2} c="blue">INR {grandTotal.toLocaleString()}</Title>
-                            </Box>
+                            </Box> */}
                         </Group>
 
                         <Group justify="flex-end">
@@ -590,24 +587,23 @@ export function Orders() {
                             <Text size="sm">{selectedOrder.remarks || "No remarks provided"}</Text>
                         </Paper>
 
-                        <Divider label={<Group gap={4}><IconPackage size={14} />Items & Inventory Status</Group>} labelPosition="center" />
+                        <Divider label={<Group gap={4}><IconPackage size={14} />Items Status</Group>} labelPosition="center" />
 
                         <Table verticalSpacing="sm" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Product</Table.Th>
                                     <Table.Th>Expected Delivery</Table.Th>
-                                    {isAdmin && <Table.Th ta="center">In Stock</Table.Th>}
+                                    {/* {isAdmin && <Table.Th ta="center">In Stock</Table.Th>} */}
                                     <Table.Th ta="center">PO Qty</Table.Th>
-                                    <Table.Th ta="right">Price</Table.Th>
-                                    <Table.Th ta="right">Total</Table.Th>
+                                    {/* <Table.Th ta="right">Total</Table.Th> */}
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
                                 {selectedOrder.items.map((item: any) => {
                                     const isLowStock = isAdmin && (item.availableStock < item.quantity);
                                     return (
-                                        <Table.Tr key={item.id} style={{ backgroundColor: isLowStock ? 'rgba(255, 0, 0, 0.08)' : undefined }}>
+                                        <Table.Tr key={item.id}>
                                             <Table.Td>
                                                 <Text size="sm" fw={600}>{item.product?.name || item.productName}</Text>
                                                 {item.remarks && <Text size="xs" c="dimmed">{item.remarks}</Text>}
@@ -618,7 +614,7 @@ export function Orders() {
                                                     <Text size="xs">{item.expectedDeliveryDate ? new Date(item.expectedDeliveryDate).toLocaleDateString() : 'N/A'}</Text>
                                                 </Group>
                                             </Table.Td>
-                                            {isAdmin && (
+                                            {/* {isAdmin && (
                                                 <Table.Td ta="center">
                                                     <Badge
                                                         variant="filled"
@@ -628,12 +624,12 @@ export function Orders() {
                                                         {item.availableStock || 0}
                                                     </Badge>
                                                 </Table.Td>
-                                            )}
+                                            )} */}
                                             <Table.Td ta="center">
-                                                <Text fw={700} c={isLowStock ? 'red' : 'inherit'}>{item.quantity}</Text>
+                                                <Text fw={700} c={isLowStock ? 'inherit' : 'inherit'}>{item.quantity}</Text>
                                             </Table.Td>
-                                            <Table.Td ta="right">{Number(item.unitPrice).toLocaleString()}</Table.Td>
-                                            <Table.Td ta="right" fw={900} c="blue">INR {Number(item.totalPrice).toLocaleString()}</Table.Td>
+                                            {/* <Table.Td ta="right">{Number(item.unitPrice).toLocaleString()}</Table.Td> */}
+                                            {/* <Table.Td ta="right" fw={900} c="blue">INR {Number(item.totalPrice).toLocaleString()}</Table.Td> */}
                                         </Table.Tr>
                                     );
                                 })}
@@ -641,10 +637,10 @@ export function Orders() {
                         </Table>
 
                         <Group justify="flex-end">
-                            <Box ta="right">
+                            {/* <Box ta="right">
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Grand Total</Text>
                                 <Title order={2} c="blue">INR {selectedOrder.items.reduce((sum: number, i: any) => sum + Number(i.totalPrice), 0).toLocaleString()}</Title>
-                            </Box>
+                            </Box> */}
                         </Group>
 
                         {/* Approval Section */}
@@ -670,16 +666,16 @@ export function Orders() {
                                         )}
                                         {selectedOrder.status === 'APPROVED_L1' && (
                                             <Stack gap="xs" style={{ width: '100%' }}>
-                                                {selectedOrder.items.some((i: any) => i.availableStock < i.quantity) && (
+                                                {/* {selectedOrder.items.some((i: any) => i.availableStock < i.quantity) && (
                                                     <Alert variant="filled" color="red" icon={<IconAlertTriangle size={16} />}>
                                                         L2 Approval Blocked: One or more items in this PO exceed available inventory stock.
                                                     </Alert>
-                                                )}
+                                                )} */}
                                                 <Group>
                                                     <Button
                                                         color="indigo"
                                                         size="lg"
-                                                        disabled={selectedOrder.items.some((i: any) => i.availableStock < i.quantity)}
+                                                        // disabled={selectedOrder.items.some((i: any) => i.availableStock < i.quantity)}
                                                         onClick={() => handleOpenApprovalModal('APPROVED', 2)}
                                                     >
                                                         Confirm & Place Order (L2)

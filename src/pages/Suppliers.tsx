@@ -40,7 +40,7 @@ export function Suppliers() {
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
-                await api.updateSupplier(editingId, values);
+                await api.updateSupplier(Number(editingId), values);
             } else {
                 await api.createSupplier(values);
             }
@@ -69,7 +69,7 @@ export function Suppliers() {
     const handleDelete = async (id: string) => {
         if (window.confirm("Are you sure you want to delete this supplier?")) {
             try {
-                await api.deleteSupplier(id);
+                await api.deleteSupplier(Number(id));
                 fetchSuppliers();
             } catch (error) {
                 console.error("Error deleting supplier:", error);

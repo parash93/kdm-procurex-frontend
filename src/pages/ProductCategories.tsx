@@ -35,7 +35,7 @@ export function ProductCategories() {
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
-                await api.updateProductCategory(editingId, values);
+                await api.updateProductCategory(Number(editingId), values);
             } else {
                 await api.createProductCategory(values);
             }
@@ -60,7 +60,7 @@ export function ProductCategories() {
     const handleDelete = async (id: string) => {
         if (window.confirm("Are you sure you want to delete this category?")) {
             try {
-                await api.deleteProductCategory(id);
+                await api.deleteProductCategory(Number(id));
                 fetchCategories();
             } catch (error) {
                 console.error("Error deleting category:", error);

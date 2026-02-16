@@ -123,7 +123,7 @@ export function Dashboard() {
                                 <Table.Tr>
                                     <Table.Th>Division</Table.Th>
                                     <Table.Th ta="center">Count</Table.Th>
-                                    <Table.Th ta="right">Total Value</Table.Th>
+                                    <Table.Th ta="right">Total QTY</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -135,7 +135,7 @@ export function Dashboard() {
                                         </Table.Td>
                                         <Table.Td ta="right">
                                             <Group gap={4} justify="flex-end">
-                                                <Text fw={900} size="lg" c="blue">INR {div.totalAmount.toLocaleString()}</Text>
+                                                <Text fw={900} size="lg" c="blue">{div.totalQty.toLocaleString()}</Text>
                                             </Group>
                                         </Table.Td>
                                     </Table.Tr>

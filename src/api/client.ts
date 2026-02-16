@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-//const BASE_URL = 'http://localhost:3000/v1';
-const BASE_URL = 'https://creativeworld.info/kdm-procurex-backend/v1';
+const BASE_URL = 'http://localhost:3000/v1';
+//const BASE_URL = 'https://creativeworld.info/kdm-procurex-backend/v1';
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
@@ -30,7 +30,7 @@ export const api = {
         const response = await apiClient.get('/auth/users');
         return response.data;
     },
-    deleteAuthUser: async (id: string) => {
+    deleteAuthUser: async (id: number) => {
         const response = await apiClient.delete(`/auth/users/${id}`);
         return response.data;
     },
@@ -42,18 +42,18 @@ export const api = {
         const response = await apiClient.post("/suppliers", data);
         return response.data;
     },
-    updateSupplier: async (id: string, data: any) => {
+    updateSupplier: async (id: number, data: any) => {
         const response = await apiClient.put(`/suppliers/${id}`, data);
         return response.data;
     },
-    deleteSupplier: async (id: string) => {
+    deleteSupplier: async (id: number) => {
         await apiClient.delete(`/suppliers/${id}`);
     },
     getOrders: async () => {
         const response = await apiClient.get("/orders");
         return response.data;
     },
-    getOrder: async (id: string) => {
+    getOrder: async (id: number) => {
         const response = await apiClient.get(`/orders/${id}`);
         return response.data;
     },
@@ -61,11 +61,11 @@ export const api = {
         const response = await apiClient.post("/orders", data);
         return response.data;
     },
-    updateOrder: async (id: string, data: any) => {
+    updateOrder: async (id: number, data: any) => {
         const response = await apiClient.put(`/orders/${id}`, data);
         return response.data;
     },
-    deleteOrder: async (id: string) => {
+    deleteOrder: async (id: number) => {
         await apiClient.delete(`/orders/${id}`);
     },
     // Users
@@ -83,7 +83,7 @@ export const api = {
         const response = await apiClient.post("/approvals", data);
         return response.data;
     },
-    getApprovalHistory: async (poId: string) => {
+    getApprovalHistory: async (poId: number) => {
         const response = await apiClient.get(`/approvals/history/${poId}`);
         return response.data;
     },
@@ -93,7 +93,7 @@ export const api = {
         const response = await apiClient.post("/tracking", data);
         return response.data;
     },
-    getTrackingHistory: async (poId: string) => {
+    getTrackingHistory: async (poId: number) => {
         const response = await apiClient.get(`/tracking/${poId}`);
         return response.data;
     },
@@ -121,11 +121,11 @@ export const api = {
         const response = await apiClient.post("/divisions", data);
         return response.data;
     },
-    updateDivision: async (id: string, data: any) => {
+    updateDivision: async (id: number, data: any) => {
         const response = await apiClient.put(`/divisions/${id}`, data);
         return response.data;
     },
-    deleteDivision: async (id: string) => {
+    deleteDivision: async (id: number) => {
         await apiClient.delete(`/divisions/${id}`);
     },
 
@@ -138,11 +138,11 @@ export const api = {
         const response = await apiClient.post("/product-categories", data);
         return response.data;
     },
-    updateProductCategory: async (id: string, data: any) => {
+    updateProductCategory: async (id: number, data: any) => {
         const response = await apiClient.put(`/product-categories/${id}`, data);
         return response.data;
     },
-    deleteProductCategory: async (id: string) => {
+    deleteProductCategory: async (id: number) => {
         await apiClient.delete(`/product-categories/${id}`);
     },
 
@@ -155,11 +155,11 @@ export const api = {
         const response = await apiClient.post("/products", data);
         return response.data;
     },
-    updateProduct: async (id: string, data: any) => {
+    updateProduct: async (id: number, data: any) => {
         const response = await apiClient.put(`/products/${id}`, data);
         return response.data;
     },
-    deleteProduct: async (id: string) => {
+    deleteProduct: async (id: number) => {
         await apiClient.delete(`/products/${id}`);
     },
 
@@ -168,7 +168,7 @@ export const api = {
         const response = await apiClient.get("/inventory");
         return response.data;
     },
-    getInventoryHistory: async (productId: string) => {
+    getInventoryHistory: async (productId: number) => {
         const response = await apiClient.get(`/inventory/history/${productId}`);
         return response.data;
     },

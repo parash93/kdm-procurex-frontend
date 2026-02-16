@@ -27,7 +27,7 @@ export function Layout() {
         { icon: IconCategory, label: 'Product Categories', to: '/product-categories' },
         { icon: IconPackage, label: 'Products', to: '/products' },
         { icon: IconShoppingCart, label: 'Orders', to: '/orders' },
-        { icon: IconPackage, label: 'Inventory', to: '/inventory' },
+        // { icon: IconPackage, label: 'Inventory', to: '/inventory' },
     ];
 
     if (isAdmin) {

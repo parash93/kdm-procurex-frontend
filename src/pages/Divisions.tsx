@@ -36,7 +36,7 @@ export function Divisions() {
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
-                await api.updateDivision(editingId, values);
+                await api.updateDivision(Number(editingId), values);
             } else {
                 await api.createDivision(values);
             }
@@ -59,10 +59,10 @@ export function Divisions() {
         open();
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm("Are you sure you want to delete this division?")) {
             try {
-                await api.deleteDivision(id);
+                await api.deleteDivision(Number(id));
                 fetchDivisions();
             } catch (error) {
                 console.error("Error deleting division:", error);

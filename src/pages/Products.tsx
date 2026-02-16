@@ -12,7 +12,7 @@ export function Products() {
     const [products, setProducts] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
     const [search, setSearch] = useState("");
 
     const form = useForm({
@@ -70,7 +70,7 @@ export function Products() {
         setEditingId(product.id);
         form.setValues({
             name: product.name,
-            categoryId: product.categoryId,
+            categoryId: product.categoryId.toString(),
             description: product.description || "",
             minDeliveryDays: product.minDeliveryDays || 0,
             status: product.status || "ACTIVE",
@@ -78,7 +78,7 @@ export function Products() {
         open();
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: number) => {
         if (!isAdmin) return;
         if (window.confirm("Are you sure you want to delete this product?")) {
             try {
@@ -234,7 +234,7 @@ export function Products() {
                         <Select
                             label="Category"
                             placeholder="Select product category"
-                            data={categories.map(c => ({ value: c.id, label: c.name }))}
+                            data={categories.map(c => ({ value: c.id + "", label: c.name }))}
                             withAsterisk
                             radius="md"
                             {...form.getInputProps("categoryId")}

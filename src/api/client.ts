@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3000/v1';
-//const BASE_URL = 'https://creativeworld.info/kdm-procurex-backend/v1';
+//const BASE_URL = 'http://localhost:3000/v1';
+const BASE_URL = 'https://creativeworld.info/kdm-procurex-backend/v1';
 
 const apiClient = axios.create({
     baseURL: BASE_URL,

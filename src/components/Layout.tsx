@@ -16,38 +16,41 @@ import { useAuth } from "../context/AuthContext";
 
 export function Layout() {
     const [opened, { toggle }] = useDisclosure();
-    const { user, logout, isAdmin } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     const links = [
-        { icon: IconDashboard, label: 'Dashboard', to: '/dashboard' },
-        { icon: IconTruck, label: 'Suppliers', to: '/suppliers' },
-        { icon: IconBuildingSkyscraper, label: 'Divisions', to: '/divisions' },
-        { icon: IconCategory, label: 'Product Categories', to: '/product-categories' },
-        { icon: IconPackage, label: 'Products', to: '/products' },
-        { icon: IconShoppingCart, label: 'Orders', to: '/orders' },
+        { icon: IconDashboard, label: 'Dashboard', to: '/dashboard', roles: ['ADMIN', 'OPERATIONS', 'SALES_MANAGER'] },
+        { icon: IconTruck, label: 'Suppliers', to: '/suppliers', roles: ['ADMIN', 'OPERATIONS'] },
+        { icon: IconBuildingSkyscraper, label: 'Divisions', to: '/divisions', roles: ['ADMIN', 'OPERATIONS'] },
+        { icon: IconCategory, label: 'Product Categories', to: '/product-categories', roles: ['ADMIN', 'OPERATIONS'] },
+        { icon: IconPackage, label: 'Products', to: '/products', roles: ['ADMIN', 'OPERATIONS'] },
+        { icon: IconShoppingCart, label: 'Orders', to: '/orders', roles: ['ADMIN', 'OPERATIONS', 'SALES_MANAGER'] },
+        { icon: IconUsers, label: 'Users', to: '/users', roles: ['ADMIN'] },
         // { icon: IconPackage, label: 'Inventory', to: '/inventory' },
     ];
 
-    if (isAdmin) {
-        links.push({ icon: IconUsers, label: 'Users', to: '/users' });
-    }
+    const items = links.map((link) => {
+        if (!link.roles.includes(user?.role || '')) {
+            return null;
+        }
+        return (
+            <NavLink
+                key={link.label}
+                active={location.pathname === link.to}
+                label={link.label}
+                leftSection={<link.icon size="1.2rem" stroke={1.5} />}
+                rightSection={<IconChevronRight size="0.8rem" stroke={1.5} />}
+                onClick={() => navigate(link.to)}
+                variant="light"
+                styles={{
+                    label: { fontWeight: 500 }
+                }}
+            />
+        );
+    });
 
-    const items = links.map((link) => (
-        <NavLink
-            key={link.label}
-            active={location.pathname === link.to}
-            label={link.label}
-            leftSection={<link.icon size="1.2rem" stroke={1.5} />}
-            rightSection={<IconChevronRight size="0.8rem" stroke={1.5} />}
-            onClick={() => navigate(link.to)}
-            variant="light"
-            styles={{
-                label: { fontWeight: 500 }
-            }}
-        />
-    ));
 
     return (
         <AppShell

@@ -59,6 +59,10 @@ export function Orders() {
 
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [search, setSearch] = useState("");
+    const approvals = {
+        L1: ['ADMIN', 'OPERATIONS'],
+        L2: ['ADMIN']
+    }
 
     // PO Creation Form
     const poForm = useForm({
@@ -66,6 +70,7 @@ export function Orders() {
             supplierId: "",
             divisionId: "",
             remarks: "",
+            poDate: new Date().toISOString().split('T')[0],
             items: [
                 { productId: "", productName: "", sku: "", quantity: 1, unitPrice: 0, totalPrice: 0, remarks: "", expectedDeliveryDate: "" }
             ]
@@ -147,7 +152,8 @@ export function Orders() {
 
             // Calculate expected delivery date: today + minDeliveryDays
             const minDays = product.minDeliveryDays || 0;
-            const date = new Date();
+
+            const date = poForm.values.poDate ? new Date(poForm.values.poDate) : new Date();
             date.setDate(date.getDate() + minDays);
             poForm.setFieldValue(`items.${index}.expectedDeliveryDate`, date.toISOString().split('T')[0]);
         }
@@ -207,13 +213,23 @@ export function Orders() {
     };
 
     const handleOpenApprovalModal = (decision: "APPROVED" | "REJECTED", level: number) => {
-        if (!isAdmin) {
-            notifications.show({ title: "Access Denied", message: "Operations users cannot perform approvals", color: "red" });
-            return;
+        if (level == 1) {
+            if (!approvals.L1.includes(user?.role as string)) {
+                notifications.show({ title: "Access Denied", message: "This user cannot perform approvals", color: "red" });
+                return;
+            }
+        }
+
+        if (level == 2) {
+            if (!approvals.L2.includes(user?.role as string)) {
+                notifications.show({ title: "Access Denied", message: "This user cannot perform approvals", color: "red" });
+                return;
+            }
         }
 
         // Strict check for stock before L2 approval
         if (level === 2 && decision === 'APPROVED') {
+
             // const insufficient = selectedOrder.items.some((item: any) => item.availableStock < item.quantity);
             // if (insufficient) {
             //     notifications.show({
@@ -445,12 +461,19 @@ export function Orders() {
                                     {...poForm.getInputProps('divisionId')}
                                 />
                             </Grid.Col>
-                            <Grid.Col span={12}>
+                            <Grid.Col span={{ base: 12, md: 6 }}>
                                 <TextInput
                                     label="Remarks"
                                     placeholder="General remarks for this PO"
                                     radius="md"
                                     {...poForm.getInputProps('remarks')}
+                                />
+                            </Grid.Col>
+                            <Grid.Col span={{ base: 12, md: 6 }}>
+                                <TextInput
+                                    label="PO Date"
+                                    type="date"
+                                    {...poForm.getInputProps(`poDate`)}
                                 />
                             </Grid.Col>
                         </Grid>
@@ -461,14 +484,14 @@ export function Orders() {
                             <Stack gap="sm">
                                 {poForm.values.items.map((_, index) => {
                                     const selectedProdId = poForm.values.items[index].productId;
-                                    const selectedProd = products.find(p => p.id === selectedProdId);
+                                    const selectedProd = products.find(p => p.id == selectedProdId);
 
                                     // Calculate prefilled date (Today + minDeliveryDays)
                                     const minDays = selectedProd?.minDeliveryDays || 0;
-                                    const minDate = new Date();
+                                    const minDate = poForm.values.poDate ? new Date(poForm.values.poDate) : new Date();
                                     minDate.setDate(minDate.getDate() + minDays);
                                     const minDateStr = minDate.toISOString().split('T')[0];
-
+                                    console.log("minDateStr", minDays, minDateStr)
                                     return (
                                         <Card key={index} withBorder radius="md" p="md" shadow="xs">
                                             <Grid align="flex-end">
@@ -645,59 +668,65 @@ export function Orders() {
                         </Group>
 
                         {/* Approval Section */}
-                        {isAdmin && (
-                            <Paper withBorder p="xl" radius="md" shadow="xs" style={{ borderLeft: '5px solid var(--mantine-color-blue-filled)' }}>
-                                <Stack gap="md">
-                                    <Group justify="space-between">
-                                        <Text fw={900} size="lg" tt="uppercase">Approval Workflow</Text>
-                                        <Badge variant="outline" color="blue">Level {selectedOrder.status === 'PENDING_L1' ? '1' : selectedOrder.status === 'APPROVED_L1' ? '2' : 'N/A'}</Badge>
-                                    </Group>
 
-                                    <Group gap="md">
-                                        {selectedOrder.status === 'DRAFT' && (
-                                            <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={() => api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' }).then(fetchData).then(closeDetails)}>
-                                                Submit for Level 1 Approval
-                                            </Button>
-                                        )}
-                                        {selectedOrder.status === 'PENDING_L1' && (
-                                            <>
-                                                <Button color="green" size="md" onClick={() => handleOpenApprovalModal('APPROVED', 1)}>Grant L1 Approval</Button>
-                                                <Button color="red" variant="outline" size="md" onClick={() => handleOpenApprovalModal('REJECTED', 1)}>Reject L1 Request</Button>
-                                            </>
-                                        )}
-                                        {selectedOrder.status === 'APPROVED_L1' && (
-                                            <Stack gap="xs" style={{ width: '100%' }}>
-                                                {/* {selectedOrder.items.some((i: any) => i.availableStock < i.quantity) && (
+                        <Paper withBorder p="xl" radius="md" shadow="xs" style={{ borderLeft: '5px solid var(--mantine-color-blue-filled)' }}>
+                            <Stack gap="md">
+                                <Group justify="space-between">
+                                    <Text fw={900} size="lg" tt="uppercase">Approval Workflow</Text>
+                                    <Badge variant="outline" color="blue">Level {selectedOrder.status === 'PENDING_L1' ? '1' : selectedOrder.status === 'APPROVED_L1' ? '2' : 'N/A'}</Badge>
+                                </Group>
+
+                                <Group gap="md">
+                                    {selectedOrder.status === 'DRAFT' && (
+                                        <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={() => api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' }).then(fetchData).then(closeDetails)}>
+                                            Submit for Level 1 Approval
+                                        </Button>
+                                    )}
+
+                                    {(approvals.L1.includes(user?.role as string) || approvals.L2.includes(user?.role as string)) && (
+                                        <>
+
+                                            {selectedOrder.status === 'PENDING_L1' && approvals.L1.includes(user?.role as string) && (
+                                                <>
+                                                    <Button color="green" size="md" onClick={() => handleOpenApprovalModal('APPROVED', 1)}>Grant L1 Approval</Button>
+                                                    <Button color="red" variant="outline" size="md" onClick={() => handleOpenApprovalModal('REJECTED', 1)}>Reject L1 Request</Button>
+                                                </>
+                                            )}
+                                            {selectedOrder.status === 'APPROVED_L1' && approvals.L2.includes(user?.role as string) && (
+                                                <Stack gap="xs" style={{ width: '100%' }}>
+                                                    {/* {selectedOrder.items.some((i: any) => i.availableStock < i.quantity) && (
                                                     <Alert variant="filled" color="red" icon={<IconAlertTriangle size={16} />}>
                                                         L2 Approval Blocked: One or more items in this PO exceed available inventory stock.
                                                     </Alert>
                                                 )} */}
-                                                <Group>
-                                                    <Button
-                                                        color="indigo"
-                                                        size="lg"
-                                                        // disabled={selectedOrder.items.some((i: any) => i.availableStock < i.quantity)}
-                                                        onClick={() => handleOpenApprovalModal('APPROVED', 2)}
-                                                    >
-                                                        Confirm & Place Order (L2)
-                                                    </Button>
-                                                    <Button
-                                                        color="red"
-                                                        variant="subtle"
-                                                        onClick={() => handleOpenApprovalModal('REJECTED', 2)}
-                                                    >
-                                                        Reject L2 Request
-                                                    </Button>
-                                                </Group>
-                                            </Stack>
-                                        )}
-                                        {!['DRAFT', 'PENDING_L1', 'APPROVED_L1'].includes(selectedOrder.status) && (
-                                            <Text c="dimmed" size="sm" fs="italic">Workflow completed or in production stage.</Text>
-                                        )}
-                                    </Group>
-                                </Stack>
-                            </Paper>
-                        )}
+                                                    <Group>
+                                                        <Button
+                                                            color="indigo"
+                                                            size="lg"
+                                                            // disabled={selectedOrder.items.some((i: any) => i.availableStock < i.quantity)}
+                                                            onClick={() => handleOpenApprovalModal('APPROVED', 2)}
+                                                        >
+                                                            Confirm & Place Order (L2)
+                                                        </Button>
+                                                        <Button
+                                                            color="red"
+                                                            variant="subtle"
+                                                            onClick={() => handleOpenApprovalModal('REJECTED', 2)}
+                                                        >
+                                                            Reject L2 Request
+                                                        </Button>
+                                                    </Group>
+                                                </Stack>
+                                            )}
+                                            {!['DRAFT', 'PENDING_L1', 'APPROVED_L1'].includes(selectedOrder.status) && (
+                                                <Text c="dimmed" size="sm" fs="italic">Workflow completed or in production stage.</Text>
+                                            )}
+                                        </>
+                                    )}
+                                </Group>
+                            </Stack>
+                        </Paper>
+
 
                         {trackingHistory.length > 0 && (
                             <Stack gap="md">
@@ -726,7 +755,7 @@ export function Orders() {
 
                         <Group justify="space-between" mt="xl" pt="md" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
                             <Group>
-                                {(selectedOrder.status === 'ORDER_PLACED' || selectedOrder.status.includes('IN_') || ['QUALITY_INSPECTION', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'PORT_CLEARANCE', 'DELIVERED', 'RETURNED'].includes(selectedOrder.status)) && (
+                                {(selectedOrder.status === 'ORDER_PLACED' || selectedOrder.status.includes('IN_') || ['QUALITY_INSPECTION', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'PORT_CLEARANCE', 'DELIVERED', 'RETURNED'].includes(selectedOrder.status)) && (approvals.L1.includes(user?.role as string) || approvals.L2.includes(user?.role as string)) && (
                                     <Button size="md" variant="gradient" gradient={{ from: 'teal', to: 'lime' }} leftSection={<IconShip size={18} />} onClick={handleOpenTracking}>Record Tracking Update</Button>
                                 )}
                                 {selectedOrder.status === 'DRAFT' && (

@@ -106,8 +106,8 @@ export default function UserManagement() {
 
     const roleColors: Record<string, string> = {
         ADMIN: 'red',
-        PURCHASE_MANAGER: 'blue',
-        FINANCE: 'teal',
+        SALES_MANAGER: 'blue',
+        // FINANCE: 'teal',
         OPERATIONS: 'gray'
     };
 
@@ -234,9 +234,11 @@ export default function UserManagement() {
                             placeholder="Select user role"
                             data={[
                                 { value: 'ADMIN', label: 'Administrator' },
-                                { value: 'PURCHASE_MANAGER', label: 'Purchase Manager' },
-                                { value: 'FINANCE', label: 'Finance Officer' },
+                                // { value: 'PURCHASE_MANAGER', label: 'Purchase Manager' },
+                                // { value: 'FINANCE', label: 'Finance Officer' },
                                 { value: 'OPERATIONS', label: 'Operations' },
+                                { value: 'SALES_MANAGER', label: 'Sales Manager' },
+
                             ]}
                             required
                             {...form.getInputProps('role')}

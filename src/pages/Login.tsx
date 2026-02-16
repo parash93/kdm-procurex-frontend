@@ -123,7 +123,7 @@ export default function Login() {
                                 {...form.getInputProps('password')}
                             />
 
-                            <Group justify="space-between" mt="xs">
+                            {/* <Group justify="space-between" mt="xs">
                                 <Checkbox
                                     label="Remember me"
                                     styles={{ label: { color: '#adb5bd' } }}
@@ -131,7 +131,7 @@ export default function Login() {
                                 <Anchor component="button" size="sm" color="blue">
                                     Forgot password?
                                 </Anchor>
-                            </Group>
+                            </Group> */}
 
                             <Button
                                 type="submit"

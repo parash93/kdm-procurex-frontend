@@ -140,7 +140,7 @@ export function Orders() {
 
     const handleProductSelect = (index: number, productId: string) => {
         poForm.setFieldValue(`items.${index}.productId`, productId);
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => p.id == productId);
         if (product) {
             poForm.setFieldValue(`items.${index}.productName`, product.name);
             poForm.setFieldValue(`items.${index}.sku`, product.sku || "");
@@ -244,6 +244,7 @@ export function Orders() {
             closeApproval();
             await handleViewDetails(selectedOrder);
             fetchData();
+            close();
             notifications.show({ title: "Success", message: `PO level ${values.level} ${values.decision.toLowerCase()}`, color: "green" });
         } catch (error) {
             notifications.show({ title: "Error", message: error instanceof Error ? error.message : "Approval failed", color: "red" });

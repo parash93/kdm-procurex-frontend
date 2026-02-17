@@ -16,7 +16,7 @@ export function Divisions() {
         data: divisions, page, limit, totalPages, search,
         setSearch, setPage, setLimit, refetch, rangeText,
     } = usePaginatedData(
-        (p, l, s) => api.getDivisionsPaginated(p, l, s)
+        (p, l, s, signal) => api.getDivisionsPaginated(p, l, s, signal)
     );
 
     const form = useForm({

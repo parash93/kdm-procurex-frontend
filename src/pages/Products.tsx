@@ -19,7 +19,7 @@ export function Products() {
         data: products, page, limit, totalPages, search,
         setSearch, setPage, setLimit, refetch, rangeText,
     } = usePaginatedData(
-        (p, l, s) => api.getProductsPaginated(p, l, s)
+        (p, l, s, signal) => api.getProductsPaginated(p, l, s, signal)
     );
 
     // Load categories for the form dropdown

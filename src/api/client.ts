@@ -37,9 +37,10 @@ export const api = {
         const response = await apiClient.get("/suppliers");
         return response.data;
     },
-    getSuppliersPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+    getSuppliersPaginated: async (page: number = 1, limit: number = 10, search?: string, signal?: AbortSignal) => {
         const response = await apiClient.get("/suppliers/paginated", {
             params: { page, limit, search },
+            signal,
         });
         return response.data;
     },
@@ -58,9 +59,10 @@ export const api = {
         const response = await apiClient.get("/orders");
         return response.data;
     },
-    getOrdersPaginated: async (page: number = 1, limit: number = 10, search?: string, status?: string) => {
+    getOrdersPaginated: async (page: number = 1, limit: number = 10, search?: string, status?: string, signal?: AbortSignal) => {
         const response = await apiClient.get("/orders/paginated", {
             params: { page, limit, search, status },
+            signal,
         });
         return response.data;
     },
@@ -128,9 +130,10 @@ export const api = {
         const response = await apiClient.get("/divisions");
         return response.data;
     },
-    getDivisionsPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+    getDivisionsPaginated: async (page: number = 1, limit: number = 10, search?: string, signal?: AbortSignal) => {
         const response = await apiClient.get("/divisions/paginated", {
             params: { page, limit, search },
+            signal,
         });
         return response.data;
     },
@@ -151,9 +154,10 @@ export const api = {
         const response = await apiClient.get("/product-categories");
         return response.data;
     },
-    getProductCategoriesPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+    getProductCategoriesPaginated: async (page: number = 1, limit: number = 10, search?: string, signal?: AbortSignal) => {
         const response = await apiClient.get("/product-categories/paginated", {
             params: { page, limit, search },
+            signal,
         });
         return response.data;
     },
@@ -174,9 +178,10 @@ export const api = {
         const response = await apiClient.get("/products");
         return response.data;
     },
-    getProductsPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+    getProductsPaginated: async (page: number = 1, limit: number = 10, search?: string, signal?: AbortSignal) => {
         const response = await apiClient.get("/products/paginated", {
             params: { page, limit, search },
+            signal,
         });
         return response.data;
     },

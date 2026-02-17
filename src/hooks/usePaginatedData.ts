@@ -45,11 +45,15 @@ interface UsePaginatedDataReturn<T> {
 /**
  * Reusable hook for server-side paginated data fetching with debounced search.
  *
- * @param fetchFn - async function that returns PaginatedResponse given (page, limit, search)
+ * The fetchFn receives an AbortSignal that MUST be forwarded to the HTTP client
+ * (e.g. axios) so that duplicate requests caused by React StrictMode are properly
+ * cancelled instead of just having their responses ignored.
+ *
+ * @param fetchFn - async function: (page, limit, search, signal) => PaginatedResponse
  * @param options - optional config
  */
 export function usePaginatedData<T>(
-    fetchFn: (page: number, limit: number, search?: string) => Promise<PaginatedResponse<T>>,
+    fetchFn: (page: number, limit: number, search: string | undefined, signal: AbortSignal) => Promise<PaginatedResponse<T>>,
     options: UsePaginatedDataOptions = {}
 ): UsePaginatedDataReturn<T> {
     const { initialLimit = 10, debounceMs = 400 } = options;
@@ -82,26 +86,49 @@ export function usePaginatedData<T>(
         setPage(1);
     }, []);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const result = await fetchFnRef.current(page, limit, debouncedSearch || undefined);
-            setData(result.data || []);
-            setTotal(result.total || 0);
-            setTotalPages(result.totalPages || 1);
-        } catch (error) {
-            console.error('Paginated fetch error:', error);
-            setData([]);
-            setTotal(0);
-            setTotalPages(1);
-        } finally {
-            setLoading(false);
-        }
-    }, [page, limit, debouncedSearch]);
+    // Track a version counter so refetch() can bump it to trigger the effect
+    const [fetchVersion, setFetchVersion] = useState(0);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        const controller = new AbortController();
+
+        const doFetch = async () => {
+            setLoading(true);
+            try {
+                const result = await fetchFnRef.current(
+                    page, limit, debouncedSearch || undefined, controller.signal
+                );
+                // No need for a separate `cancelled` flag — if aborted, axios
+                // throws a CanceledError which lands in the catch block below.
+                setData(result.data || []);
+                setTotal(result.total || 0);
+                setTotalPages(result.totalPages || 1);
+            } catch (error: any) {
+                // Ignore AbortController cancellations — they're expected
+                if (error?.name === 'CanceledError' || error?.name === 'AbortError' || controller.signal.aborted) {
+                    return;
+                }
+                console.error('Paginated fetch error:', error);
+                setData([]);
+                setTotal(0);
+                setTotalPages(1);
+            } finally {
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        doFetch();
+
+        return () => {
+            controller.abort();
+        };
+    }, [page, limit, debouncedSearch, fetchVersion]);
+
+    const refetch = useCallback(() => {
+        setFetchVersion(v => v + 1);
+    }, []);
 
     // Cleanup debounce timer
     useEffect(() => {
@@ -125,7 +152,7 @@ export function usePaginatedData<T>(
         setSearch: handleSearchChange,
         setPage,
         setLimit: handleLimitChange,
-        refetch: fetchData,
+        refetch,
         rangeText,
     };
 }

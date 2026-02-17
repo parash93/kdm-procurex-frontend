@@ -16,7 +16,7 @@ export function Suppliers() {
         data: suppliers, page, limit, totalPages, search,
         setSearch, setPage, setLimit, refetch, rangeText,
     } = usePaginatedData(
-        (p, l, s) => api.getSuppliersPaginated(p, l, s)
+        (p, l, s, signal) => api.getSuppliersPaginated(p, l, s, signal)
     );
 
     const form = useForm({

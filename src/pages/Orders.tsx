@@ -140,48 +140,62 @@ export function Orders() {
         }
     });
 
-    const fetchOrders = useCallback(async () => {
-        try {
-            const result = await api.getOrdersPaginated(
-                page, limit,
-                debouncedSearch || undefined,
-                filterStatus !== 'ALL' ? filterStatus : undefined
-            );
-            setOrders(result.data || []);
-            setTotal(result.total || 0);
-            setTotalPages(result.totalPages || 1);
-        } catch (error) {
-            console.error("Error fetching orders:", error);
-            setOrders([]);
-        }
-    }, [page, limit, debouncedSearch, filterStatus]);
+    const [fetchVersion, setFetchVersion] = useState(0);
+    const refetchOrders = useCallback(() => setFetchVersion(v => v + 1), []);
 
-    const fetchDropdownData = async () => {
-        try {
-            const [suppliersData, divisionsData, productsData] = await Promise.all([
-                api.getSuppliers(),
-                api.getDivisions(),
-                api.getProducts()
-            ]);
-            setSuppliers(suppliersData || []);
-            setDivisions(divisionsData || []);
-            setProducts(productsData || []);
+    useEffect(() => {
+        const controller = new AbortController();
 
-            if (isAdmin) {
-                const usersData = await api.getAuthUsers();
-                setUsers(usersData || []);
+        const doFetch = async () => {
+            try {
+                const result = await api.getOrdersPaginated(
+                    page, limit,
+                    debouncedSearch || undefined,
+                    filterStatus !== 'ALL' ? filterStatus : undefined,
+                    controller.signal
+                );
+                setOrders(result.data || []);
+                setTotal(result.total || 0);
+                setTotalPages(result.totalPages || 1);
+            } catch (error: any) {
+                if (error?.name === 'CanceledError' || error?.name === 'AbortError' || controller.signal.aborted) return;
+                console.error("Error fetching orders:", error);
+                setOrders([]);
             }
-        } catch (error) {
-            console.error("Error fetching dropdown data:", error);
-        }
-    };
+        };
+
+        doFetch();
+        return () => { controller.abort(); };
+    }, [page, limit, debouncedSearch, filterStatus, fetchVersion]);
 
     useEffect(() => {
-        fetchOrders();
-    }, [fetchOrders]);
+        const controller = new AbortController();
 
-    useEffect(() => {
+        const fetchDropdownData = async () => {
+            try {
+                const [suppliersData, divisionsData, productsData] = await Promise.all([
+                    api.getSuppliers(),
+                    api.getDivisions(),
+                    api.getProducts()
+                ]);
+                if (!controller.signal.aborted) {
+                    setSuppliers(suppliersData || []);
+                    setDivisions(divisionsData || []);
+                    setProducts(productsData || []);
+                }
+
+                if (isAdmin) {
+                    const usersData = await api.getAuthUsers();
+                    if (!controller.signal.aborted) setUsers(usersData || []);
+                }
+            } catch (error: any) {
+                if (error?.name === 'CanceledError' || error?.name === 'AbortError' || controller.signal.aborted) return;
+                console.error("Error fetching dropdown data:", error);
+            }
+        };
+
         fetchDropdownData();
+        return () => { controller.abort(); };
     }, []);
 
     const handleAddItem = () => {
@@ -259,7 +273,7 @@ export function Orders() {
             });
             closeTracking();
             await handleViewDetails(selectedOrder);
-            fetchOrders();
+            refetchOrders();
             notifications.show({ title: "Updated", message: "Tracking stage recorded", color: "blue" });
         } catch (error) {
             console.error("Error adding tracking update:", error);
@@ -313,7 +327,7 @@ export function Orders() {
 
             closeApproval();
             await handleViewDetails(selectedOrder);
-            fetchOrders();
+            refetchOrders();
             close();
             notifications.show({ title: "Success", message: `PO level ${values.level} ${values.decision.toLowerCase()}`, color: "green" });
         } catch (error) {
@@ -356,7 +370,7 @@ export function Orders() {
                 await api.createOrder(values);
             }
             close();
-            fetchOrders();
+            refetchOrders();
             notifications.show({ title: "Success", message: `Order ${isEditing ? 'updated' : 'created'} successfully`, color: "green" });
         } catch (error) {
             console.error("Error saving order:", error);
@@ -755,7 +769,7 @@ export function Orders() {
 
                                 <Group gap="md">
                                     {selectedOrder.status === 'DRAFT' && (
-                                        <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={() => api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' }).then(fetchOrders).then(closeDetails)}>
+                                        <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={() => api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' }).then(refetchOrders).then(closeDetails)}>
                                             Submit for Level 1 Approval
                                         </Button>
                                     )}

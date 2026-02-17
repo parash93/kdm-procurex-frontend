@@ -16,7 +16,7 @@ export function ProductCategories() {
         data: categories, page, limit, totalPages, search,
         setSearch, setPage, setLimit, refetch, rangeText,
     } = usePaginatedData(
-        (p, l, s) => api.getProductCategoriesPaginated(p, l, s)
+        (p, l, s, signal) => api.getProductCategoriesPaginated(p, l, s, signal)
     );
 
     const form = useForm({

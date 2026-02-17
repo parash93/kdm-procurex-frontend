@@ -422,7 +422,7 @@ export function Dispatches() {
                         <Text fw={500} mt="md">Timeline</Text>
                         <Stack gap="xs">
                             {viewDispatch.stageUpdates?.map((update: any) => (
-                                <Paper key={update.id} withBorder p="sm" bg="gray.0">
+                                <Paper key={update.id} withBorder p="sm" >
                                     <Group justify="space-between">
                                         <Text size="sm" fw={500}>{update.stage}</Text>
                                         <Text size="xs" c="dimmed">{new Date(update.timestamp).toLocaleString()}</Text>

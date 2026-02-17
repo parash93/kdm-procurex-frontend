@@ -58,6 +58,7 @@ export function Orders() {
     const [products, setProducts] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [trackingHistory, setTrackingHistory] = useState<any[]>([]);
+    const [relatedDispatches, setRelatedDispatches] = useState<any[]>([]);
     const [filterStatus, setFilterStatus] = useState<string>("ALL");
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -240,8 +241,9 @@ export function Orders() {
         setSelectedOrder(order);
         try {
             // Tracking history is now Dispatch based. 
-            // We could fetch dispatches related to this PO if needed.
-            // For now, just show order details.
+            // Fetch dispatches specifically for this PO number
+            const dispatchResult = await api.getDispatches(1, 50, order.poNumber);
+            setRelatedDispatches(dispatchResult.data || []);
 
             // Map inventory quantity to items
             const enrichedItems = order.items.map((item: any) => {
@@ -252,6 +254,7 @@ export function Orders() {
             setTrackingHistory([]);
         } catch (err) {
             console.error("Error fetching details:", err);
+            setRelatedDispatches([]);
             setTrackingHistory([]);
         }
         openDetails();
@@ -872,6 +875,42 @@ export function Orders() {
                                         </Timeline.Item>
                                     ))}
                                 </Timeline>
+                            </Stack>
+                        )}
+
+                        {relatedDispatches.length > 0 && (
+                            <Stack gap="md">
+                                <Divider label={<Group gap={4}><IconPackage size={14} />Dispatch History</Group>} labelPosition="center" />
+                                <Table verticalSpacing="xs">
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Ref #</Table.Th>
+                                            <Table.Th>Status</Table.Th>
+                                            <Table.Th>Date</Table.Th>
+                                            <Table.Th>Items</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {relatedDispatches.map((d: any) => (
+                                            <Table.Tr key={d.id}>
+                                                <Table.Td>
+                                                    <Text size="sm" fw={600}>{d.referenceNumber || `#${d.id}`}</Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Badge size="xs" variant="light" color={statusColors[d.status] || 'blue'}>
+                                                        {d.status}
+                                                    </Badge>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="xs">{new Date(d.createdAt).toLocaleDateString()}</Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="xs">{d.items?.length || 0} Products</Text>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
                             </Stack>
                         )}
 

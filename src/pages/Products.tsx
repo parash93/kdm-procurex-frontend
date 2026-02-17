@@ -24,6 +24,7 @@ export function Products() {
     );
 
     const [submitting, setSubmitting] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     // Load categories for the form dropdown
     useEffect(() => {
@@ -82,11 +83,14 @@ export function Products() {
     const handleDelete = async (id: number) => {
         if (!isAdmin) return;
         if (window.confirm("Are you sure you want to delete this product?")) {
+            setDeleting(true);
             try {
                 await api.deleteProduct(id);
                 refetch();
             } catch (error) {
                 console.error("Error deleting product:", error);
+            } finally {
+                setDeleting(false);
             }
         }
     };
@@ -192,7 +196,7 @@ export function Products() {
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)', position: 'relative' }}>
-                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
+                    <LoadingOverlay visible={loading || deleting} overlayProps={{ blur: 1 }} />
                     <SearchBar
                         search={search}
                         onSearchChange={setSearch}

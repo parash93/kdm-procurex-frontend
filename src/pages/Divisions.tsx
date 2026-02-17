@@ -21,6 +21,7 @@ export function Divisions() {
     );
 
     const [submitting, setSubmitting] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const form = useForm({
         initialValues: {
@@ -64,11 +65,14 @@ export function Divisions() {
 
     const handleDelete = async (id: number) => {
         if (window.confirm("Are you sure you want to delete this division?")) {
+            setDeleting(true);
             try {
                 await api.deleteDivision(Number(id));
                 refetch();
             } catch (error) {
                 console.error("Error deleting division:", error);
+            } finally {
+                setDeleting(false);
             }
         }
     };
@@ -155,7 +159,7 @@ export function Divisions() {
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)', position: 'relative' }}>
-                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
+                    <LoadingOverlay visible={loading || deleting} overlayProps={{ blur: 1 }} />
                     <SearchBar
                         search={search}
                         onSearchChange={setSearch}

@@ -21,6 +21,7 @@ export function Suppliers() {
     );
 
     const [submitting, setSubmitting] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const form = useForm({
         initialValues: {
@@ -71,11 +72,14 @@ export function Suppliers() {
 
     const handleDelete = async (id: string) => {
         if (window.confirm("Are you sure you want to delete this supplier?")) {
+            setDeleting(true);
             try {
                 await api.deleteSupplier(Number(id));
                 refetch();
             } catch (error) {
                 console.error("Error deleting supplier:", error);
+            } finally {
+                setDeleting(false);
             }
         }
     };
@@ -166,7 +170,7 @@ export function Suppliers() {
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)', position: 'relative' }}>
-                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
+                    <LoadingOverlay visible={loading || deleting} overlayProps={{ blur: 1 }} />
                     <SearchBar
                         search={search}
                         onSearchChange={setSearch}

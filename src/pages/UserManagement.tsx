@@ -89,20 +89,22 @@ export default function UserManagement() {
 
     const handleDeleteUser = async (id: number, username: string) => {
         if (window.confirm(`Are you sure you want to delete user ${username}?`)) {
+            setLoading(true);
             try {
                 await api.deleteAuthUser(Number(id));
-                fetchUsers();
                 notifications.show({
                     title: 'User Deleted',
                     message: 'User has been removed from the system.',
                     color: 'blue'
                 });
+                await fetchUsers();
             } catch (error: any) {
                 notifications.show({
                     title: 'Error',
                     message: error.response?.data?.message || 'Failed to delete user',
                     color: 'red'
                 });
+                setLoading(false); // Only needed if fetchUsers fails or isn't called
             }
         }
     };

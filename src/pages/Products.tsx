@@ -25,7 +25,9 @@ export function Products() {
 
     // Load categories for the form dropdown
     useEffect(() => {
-        api.getProductCategories().then(setCategories).catch(console.error);
+        api.getProductCategories()
+            .then(data => setCategories(data.filter((c: any) => c.status === 'ACTIVE')))
+            .catch(console.error);
     }, []);
 
     const form = useForm({

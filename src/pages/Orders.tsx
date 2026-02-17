@@ -181,9 +181,9 @@ export function Orders() {
                     api.getProducts()
                 ]);
                 if (!controller.signal.aborted) {
-                    setSuppliers(suppliersData || []);
-                    setDivisions(divisionsData || []);
-                    setProducts(productsData || []);
+                    setSuppliers((suppliersData || []).filter((s: any) => s.status === 'ACTIVE'));
+                    setDivisions((divisionsData || []).filter((d: any) => d.status === 'ACTIVE'));
+                    setProducts((productsData || []).filter((p: any) => p.status === 'ACTIVE'));
                 }
 
                 if (isAdmin) {
@@ -612,7 +612,7 @@ export function Orders() {
                                     const minDate = poForm.values.poDate ? new Date(poForm.values.poDate) : new Date();
                                     minDate.setDate(minDate.getDate() + minDays);
                                     const minDateStr = minDate.toISOString().split('T')[0];
-                                    console.log("minDateStr", minDays, minDateStr)
+
                                     return (
                                         <Card key={index} withBorder radius="md" p="md" shadow="xs">
                                             <Grid align="flex-end">

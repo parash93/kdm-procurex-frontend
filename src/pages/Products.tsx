@@ -1,5 +1,6 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box, NumberInput } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconClock } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconClock, IconDownload } from "@tabler/icons-react";
+import { downloadCSV } from "../utils/export";
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
@@ -91,8 +92,25 @@ export function Products() {
         open();
     };
 
+    const handleExport = () => {
+        const dataToExport = products.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category?.name,
+            categoryId: p.categoryId,
+            description: p.description,
+            minDeliveryDays: p.minDeliveryDays,
+            status: p.status,
+            createdAt: p.createdAt,
+        }));
+        downloadCSV(dataToExport, "products");
+    };
+
     const rows = products.map((element: any) => (
         <Table.Tr key={element.id}>
+            <Table.Td>
+                <Text size="sm" c="dimmed">#{element.id}</Text>
+            </Table.Td>
             <Table.Td>
                 <Text fw={500}>{element.name}</Text>
                 {element.description && (
@@ -141,17 +159,29 @@ export function Products() {
                         <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Products</Title>
                         <Text c="dimmed" size="sm">Manage your product catalog and items</Text>
                     </Box>
-                    <Button
-                        leftSection={<IconPlus size={18} />}
-                        onClick={handleAdd}
-                        size="md"
-                        radius="md"
-                        variant="gradient"
-                        gradient={{ from: 'blue', to: 'cyan' }}
-                        w={isMobile ? '100%' : 'auto'}
-                    >
-                        Add New Product
-                    </Button>
+                    <Group>
+                        <Button
+                            leftSection={<IconPlus size={18} />}
+                            onClick={handleAdd}
+                            size="md"
+                            radius="md"
+                            variant="gradient"
+                            gradient={{ from: 'blue', to: 'cyan' }}
+                            w={isMobile ? '100%' : 'auto'}
+                        >
+                            Add New Product
+                        </Button>
+                        <Button
+                            leftSection={<IconDownload size={18} />}
+                            onClick={handleExport}
+                            size="md"
+                            radius="md"
+                            variant="outline"
+                            color="gray"
+                        >
+                            Export CSV
+                        </Button>
+                    </Group>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
@@ -167,6 +197,7 @@ export function Products() {
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
+                                    <Table.Th w={80}>ID</Table.Th>
                                     <Table.Th>Product Details</Table.Th>
                                     <Table.Th>Category</Table.Th>
                                     <Table.Th>Min. Delivery</Table.Th>

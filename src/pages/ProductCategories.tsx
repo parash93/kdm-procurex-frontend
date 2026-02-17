@@ -1,5 +1,6 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconDownload } from "@tabler/icons-react";
+import { downloadCSV } from "../utils/export";
 import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
@@ -72,8 +73,21 @@ export function ProductCategories() {
         open();
     };
 
+    const handleExport = () => {
+        const dataToExport = categories.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            status: c.status,
+            createdAt: c.createdAt,
+        }));
+        downloadCSV(dataToExport, "product-categories");
+    };
+
     const rows = categories.map((element: any) => (
         <Table.Tr key={element.id}>
+            <Table.Td>
+                <Text size="sm" c="dimmed">#{element.id}</Text>
+            </Table.Td>
             <Table.Td>
                 <Text fw={500}>{element.name}</Text>
             </Table.Td>
@@ -106,17 +120,29 @@ export function ProductCategories() {
                         <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Product Categories</Title>
                         <Text c="dimmed" size="sm">Manage categories for your product catalog</Text>
                     </Box>
-                    <Button
-                        leftSection={<IconPlus size={18} />}
-                        onClick={handleAdd}
-                        size="md"
-                        radius="md"
-                        variant="gradient"
-                        gradient={{ from: 'blue', to: 'cyan' }}
-                        w={isMobile ? '100%' : 'auto'}
-                    >
-                        Add New Category
-                    </Button>
+                    <Group>
+                        <Button
+                            leftSection={<IconPlus size={18} />}
+                            onClick={handleAdd}
+                            size="md"
+                            radius="md"
+                            variant="gradient"
+                            gradient={{ from: 'blue', to: 'cyan' }}
+                            w={isMobile ? '100%' : 'auto'}
+                        >
+                            Add New Category
+                        </Button>
+                        <Button
+                            leftSection={<IconDownload size={18} />}
+                            onClick={handleExport}
+                            size="md"
+                            radius="md"
+                            variant="outline"
+                            color="gray"
+                        >
+                            Export CSV
+                        </Button>
+                    </Group>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
@@ -132,6 +158,7 @@ export function ProductCategories() {
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
+                                    <Table.Th w={80}>ID</Table.Th>
                                     <Table.Th>Category Name</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>

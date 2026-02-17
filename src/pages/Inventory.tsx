@@ -20,8 +20,11 @@ import {
     IconMinus,
     IconSearch,
     IconPackage,
-    IconExclamationCircle
+
+    IconExclamationCircle,
+    IconDownload,
 } from "@tabler/icons-react";
+import { downloadCSV } from "../utils/export";
 import { useEffect, useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
@@ -117,12 +120,28 @@ export function Inventory() {
         }
     };
 
+
+
+    const handleExport = () => {
+        const dataToExport = inventory.map((i: any) => ({
+            id: i.id,
+            productName: i.product?.name,
+            category: i.product?.category?.name,
+            quantity: i.quantity,
+            lastUpdated: new Date(i.updatedAt).toLocaleString(),
+        }));
+        downloadCSV(dataToExport, "inventory");
+    };
+
     const filteredInventory = inventory.filter(item =>
         item.product?.name.toLowerCase().includes(search.toLowerCase())
     );
 
     const rows = filteredInventory.map((item) => (
         <Table.Tr key={item.id}>
+            <Table.Td>
+                <Text size="sm" c="dimmed">#{item.id}</Text>
+            </Table.Td>
             <Table.Td>
                 <Group gap="sm">
                     <Box style={{
@@ -193,12 +212,23 @@ export function Inventory() {
                             style={{ flex: 1 }}
                             radius="md"
                         />
+
+                        <Button
+                            leftSection={<IconDownload size={18} />}
+                            onClick={handleExport}
+                            variant="outline"
+                            color="gray"
+                            style={{ marginLeft: 8 }}
+                        >
+                            Export CSV
+                        </Button>
                     </Group>
 
                     <Table.ScrollContainer minWidth={600}>
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
+                                    <Table.Th w={60}>ID</Table.Th>
                                     <Table.Th>Product</Table.Th>
                                     <Table.Th>Available Stock</Table.Th>
                                     <Table.Th>Last Updated</Table.Th>

@@ -1,5 +1,6 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconDownload } from "@tabler/icons-react";
+import { downloadCSV } from "../utils/export";
 import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
@@ -81,8 +82,25 @@ export function Suppliers() {
         open();
     };
 
+    const handleExport = () => {
+        const dataToExport = suppliers.map((s: any) => ({
+            id: s.id,
+            companyName: s.companyName,
+            contactPerson: s.contactPerson,
+            email: s.email,
+            phone: s.phone,
+            address: s.address,
+            status: s.status,
+            createdAt: s.createdAt,
+        }));
+        downloadCSV(dataToExport, "suppliers");
+    };
+
     const rows = suppliers.map((element: any) => (
         <Table.Tr key={element.id}>
+            <Table.Td>
+                <Text size="sm" c="dimmed">#{element.id}</Text>
+            </Table.Td>
             <Table.Td>
                 <Text fw={500}>{element.companyName}</Text>
             </Table.Td>
@@ -117,17 +135,29 @@ export function Suppliers() {
                         <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Suppliers</Title>
                         <Text c="dimmed" size="sm">Manage your vendor relationships and master data</Text>
                     </Box>
-                    <Button
-                        leftSection={<IconPlus size={18} />}
-                        onClick={handleAdd}
-                        size="md"
-                        radius="md"
-                        variant="gradient"
-                        gradient={{ from: 'blue', to: 'cyan' }}
-                        w={isMobile ? '100%' : 'auto'}
-                    >
-                        Add New Supplier
-                    </Button>
+                    <Group>
+                        <Button
+                            leftSection={<IconPlus size={18} />}
+                            onClick={handleAdd}
+                            size="md"
+                            radius="md"
+                            variant="gradient"
+                            gradient={{ from: 'blue', to: 'cyan' }}
+                            w={isMobile ? '100%' : 'auto'}
+                        >
+                            Add New Supplier
+                        </Button>
+                        <Button
+                            leftSection={<IconDownload size={18} />}
+                            onClick={handleExport}
+                            size="md"
+                            radius="md"
+                            variant="outline"
+                            color="gray"
+                        >
+                            Export CSV
+                        </Button>
+                    </Group>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
@@ -143,6 +173,7 @@ export function Suppliers() {
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
+                                    <Table.Th w={80}>ID</Table.Th>
                                     <Table.Th>Company Name</Table.Th>
                                     <Table.Th>Contact Person</Table.Th>
                                     <Table.Th>Email</Table.Th>

@@ -1,5 +1,6 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconDownload } from "@tabler/icons-react";
+import { downloadCSV } from "../utils/export";
 import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
@@ -74,8 +75,22 @@ export function Divisions() {
         open();
     };
 
+    const handleExport = () => {
+        const dataToExport = divisions.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            contactPerson: d.contactPerson,
+            status: d.status,
+            createdAt: d.createdAt,
+        }));
+        downloadCSV(dataToExport, "divisions");
+    };
+
     const rows = divisions.map((element: any) => (
         <Table.Tr key={element.id}>
+            <Table.Td>
+                <Text size="sm" c="dimmed">#{element.id}</Text>
+            </Table.Td>
             <Table.Td>
                 <Text fw={500}>{element.name}</Text>
             </Table.Td>
@@ -109,17 +124,29 @@ export function Divisions() {
                         <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Divisions</Title>
                         <Text c="dimmed" size="sm">Manage company divisions and departments</Text>
                     </Box>
-                    <Button
-                        leftSection={<IconPlus size={18} />}
-                        onClick={handleAdd}
-                        size="md"
-                        radius="md"
-                        variant="gradient"
-                        gradient={{ from: 'blue', to: 'cyan' }}
-                        w={isMobile ? '100%' : 'auto'}
-                    >
-                        Add New Division
-                    </Button>
+                    <Group>
+                        <Button
+                            leftSection={<IconPlus size={18} />}
+                            onClick={handleAdd}
+                            size="md"
+                            radius="md"
+                            variant="gradient"
+                            gradient={{ from: 'blue', to: 'cyan' }}
+                            w={isMobile ? '100%' : 'auto'}
+                        >
+                            Add New Division
+                        </Button>
+                        <Button
+                            leftSection={<IconDownload size={18} />}
+                            onClick={handleExport}
+                            size="md"
+                            radius="md"
+                            variant="outline"
+                            color="gray"
+                        >
+                            Export CSV
+                        </Button>
+                    </Group>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
@@ -135,6 +162,7 @@ export function Divisions() {
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
+                                    <Table.Th w={80}>ID</Table.Th>
                                     <Table.Th>Division Name</Table.Th>
                                     <Table.Th>Contact Person</Table.Th>
                                     <Table.Th>Status</Table.Th>

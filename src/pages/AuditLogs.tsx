@@ -1,8 +1,9 @@
 import {
     Table, Group, Title, Badge, Paper, Stack, Text, Box,
-    Select, Tooltip, Code, Modal, ScrollArea, JsonInput,
+    Select, Tooltip, Code, Modal, ScrollArea, JsonInput, Button,
 } from "@mantine/core";
-import { IconHistory, IconEye } from "@tabler/icons-react";
+import { IconHistory, IconEye, IconDownload } from "@tabler/icons-react";
+import { downloadCSV } from "../utils/export";
 import { useState } from "react";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
@@ -116,6 +117,19 @@ export function AuditLogs() {
         { extraDeps: [filterEntityType, filterAction] }
     );
 
+    const handleExport = () => {
+        const dataToExport = logs.map((l: any) => ({
+            id: l.id,
+            timestamp: new Date(l.createdAt).toLocaleString(),
+            user: l.username,
+            action: l.action,
+            entityType: l.entityType,
+            entityId: l.entityId,
+            metadata: l.metadata ? JSON.stringify(l.metadata) : "",
+        }));
+        downloadCSV(dataToExport, "audit-logs");
+    };
+
     const handleViewDetail = (log: any) => {
         setSelectedLog(log);
         openDetail();
@@ -209,6 +223,14 @@ export function AuditLogs() {
                             Track every action — who did what, when, and on which entity
                         </Text>
                     </Box>
+                    <Button
+                        leftSection={<IconDownload size={18} />}
+                        onClick={handleExport}
+                        variant="outline"
+                        color="gray"
+                    >
+                        Export CSV
+                    </Button>
                 </Group>
 
                 <Paper

@@ -33,7 +33,9 @@ import {
     IconClock,
     IconShoppingCart,
     IconPackage,
+    IconDownload,
 } from "@tabler/icons-react";
+import { downloadCSV } from "../utils/export";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useMediaQuery, useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
@@ -398,8 +400,26 @@ export function Orders() {
     const to = Math.min(page * limit, total);
     const rangeText = `Showing ${from}–${to} of ${total} orders`;
 
+    const handleExport = () => {
+        // Flatten order data for CSV
+        const dataToExport = orders.map((o: any) => ({
+            id: o.id,
+            poNumber: o.poNumber,
+            supplier: o.supplier?.companyName,
+            division: o.division?.name,
+            totalItems: o.items?.length || 0,
+            status: o.status,
+            orderDate: new Date(o.poDate).toLocaleDateString(),
+            remarks: o.remarks,
+        }));
+        downloadCSV(dataToExport, "purchase-orders");
+    };
+
     const rows = orders.map((element: any) => (
         <Table.Tr key={element.id}>
+            <Table.Td>
+                <Text size="sm" c="dimmed">#{element.id}</Text>
+            </Table.Td>
             <Table.Td>
                 <Text fw={700} c="blue">{element.poNumber}</Text>
                 <Text size="xs" c="dimmed">{new Date(element.poDate).toLocaleString()}</Text>
@@ -445,6 +465,15 @@ export function Orders() {
                     <Button variant="gradient" gradient={{ from: 'blue', to: 'indigo' }} leftSection={<IconPlus size={18} />} onClick={handleOpen}>
                         New PO
                     </Button>
+                    <Button
+                        variant="outline"
+                        color="gray"
+                        leftSection={<IconDownload size={18} />}
+                        onClick={handleExport}
+                        style={{ marginLeft: 8 }}
+                    >
+                        Export CSV
+                    </Button>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
@@ -483,6 +512,7 @@ export function Orders() {
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
+                                    <Table.Th w={60}>ID</Table.Th>
                                     <Table.Th>PO Details</Table.Th>
                                     <Table.Th>Supplier</Table.Th>
                                     <Table.Th>Division</Table.Th>

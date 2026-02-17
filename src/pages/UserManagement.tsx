@@ -22,7 +22,9 @@ import {
     IconMail,
     IconShieldLock,
     IconSearch,
+    IconDownload,
 } from '@tabler/icons-react';
+import { downloadCSV } from "../utils/export";
 import { api } from '../api/client';
 import { notifications } from '@mantine/notifications';
 
@@ -111,8 +113,21 @@ export default function UserManagement() {
         OPERATIONS: 'gray'
     };
 
+    const handleExport = () => {
+        const dataToExport = filteredUsers.map((u: any) => ({
+            id: u.id,
+            username: u.username,
+            role: u.role,
+            createdAt: u.createdAt,
+        }));
+        downloadCSV(dataToExport, "users");
+    };
+
     const rows = filteredUsers.map((user) => (
         <Table.Tr key={user.id}>
+            <Table.Td>
+                <Text size="sm" c="dimmed">#{user.id}</Text>
+            </Table.Td>
             <Table.Td>
                 <Group gap="sm">
                     <Box style={{
@@ -180,6 +195,15 @@ export default function UserManagement() {
                         >
                             Add New User
                         </Button>
+                        <Button
+                            leftSection={<IconDownload size={18} />}
+                            onClick={handleExport}
+                            variant="outline"
+                            color="gray"
+                            style={{ marginLeft: 8 }}
+                        >
+                            Export CSV
+                        </Button>
                     </Group>
                 </Group>
 
@@ -187,6 +211,7 @@ export default function UserManagement() {
                     <Table verticalSpacing="md" highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
+                                <Table.Th>ID</Table.Th>
                                 <Table.Th>User Details</Table.Th>
                                 <Table.Th>Role</Table.Th>
                                 <Table.Th>Created Date</Table.Th>

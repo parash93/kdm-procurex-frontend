@@ -13,6 +13,7 @@ import {
     Modal,
     TextInput,
     Select,
+    LoadingOverlay,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
@@ -31,6 +32,7 @@ import { notifications } from '@mantine/notifications';
 export default function UserManagement() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [search, setSearch] = useState('');
     const [opened, { open, close }] = useDisclosure(false);
 
@@ -63,6 +65,7 @@ export default function UserManagement() {
     }, []);
 
     const handleCreateUser = async (values: typeof form.values) => {
+        setSubmitting(true);
         try {
             await api.registerUser(values);
             close();
@@ -79,6 +82,8 @@ export default function UserManagement() {
                 message: error.response?.data?.message || 'Failed to create user',
                 color: 'red'
             });
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -207,7 +212,8 @@ export default function UserManagement() {
                     </Group>
                 </Group>
 
-                <Paper p="md" radius="md" withBorder shadow="sm">
+                <Paper p="md" radius="md" withBorder shadow="sm" style={{ position: 'relative' }}>
+                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
                     <Table verticalSpacing="md" highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
@@ -219,12 +225,9 @@ export default function UserManagement() {
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {loading ? (
-                                <Table.Tr><Table.Td colSpan={4} ta="center">Loading users...</Table.Td></Table.Tr>
-                            ) : rows.length > 0 ? rows : (
-                                <Table.Tr><Table.Td colSpan={4} ta="center">No users found</Table.Td></Table.Tr>
-                            )
-                            }
+                            {rows.length > 0 ? rows : (
+                                <Table.Tr><Table.Td colSpan={5} ta="center">No users found</Table.Td></Table.Tr>
+                            )}
                         </Table.Tbody>
                     </Table>
                 </Paper>
@@ -275,6 +278,7 @@ export default function UserManagement() {
                             radius="md"
                             variant="gradient"
                             gradient={{ from: 'blue', to: 'indigo' }}
+                            loading={submitting}
                         >
                             Create Account
                         </Button>

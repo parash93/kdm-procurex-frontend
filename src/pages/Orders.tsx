@@ -18,7 +18,8 @@ import {
     ScrollArea,
     Card,
     Timeline,
-    Pagination
+    Pagination,
+    LoadingOverlay
 } from "@mantine/core";
 import {
     IconPlus,
@@ -59,6 +60,8 @@ export function Orders() {
     const [trackingHistory, setTrackingHistory] = useState<any[]>([]);
     const [filterStatus, setFilterStatus] = useState<string>("ALL");
     const [isEditing, setIsEditing] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
     const [opened, { open, close }] = useDisclosure(false);
     const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
@@ -149,6 +152,7 @@ export function Orders() {
         const controller = new AbortController();
 
         const doFetch = async () => {
+            setLoading(true);
             try {
                 const result = await api.getOrdersPaginated(
                     page, limit,
@@ -163,6 +167,8 @@ export function Orders() {
                 if (error?.name === 'CanceledError' || error?.name === 'AbortError' || controller.signal.aborted) return;
                 console.error("Error fetching orders:", error);
                 setOrders([]);
+            } finally {
+                if (!controller.signal.aborted) setLoading(false);
             }
         };
 
@@ -267,6 +273,7 @@ export function Orders() {
     };
 
     const onSubmitTracking = async (values: typeof trackingForm.values) => {
+        setSubmitting(true);
         try {
             await api.addTrackingUpdate({
                 poId: selectedOrder.id,
@@ -279,6 +286,8 @@ export function Orders() {
             notifications.show({ title: "Updated", message: "Tracking stage recorded", color: "blue" });
         } catch (error) {
             console.error("Error adding tracking update:", error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -321,6 +330,7 @@ export function Orders() {
     };
 
     const onSubmitApproval = async (values: typeof approvalForm.values) => {
+        setSubmitting(true);
         try {
             await api.submitApproval({
                 poId: selectedOrder.id,
@@ -334,6 +344,8 @@ export function Orders() {
             notifications.show({ title: "Success", message: `PO level ${values.level} ${values.decision.toLowerCase()}`, color: "green" });
         } catch (error) {
             notifications.show({ title: "Error", message: error instanceof Error ? error.message : "Approval failed", color: "red" });
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -365,6 +377,7 @@ export function Orders() {
     };
 
     const onSubmit = async (values: typeof poForm.values) => {
+        setSubmitting(true);
         try {
             if (isEditing && selectedOrder) {
                 await api.updateOrder(selectedOrder.id, values);
@@ -376,6 +389,21 @@ export function Orders() {
             notifications.show({ title: "Success", message: `Order ${isEditing ? 'updated' : 'created'} successfully`, color: "green" });
         } catch (error) {
             console.error("Error saving order:", error);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleSubmitL1 = async () => {
+        setSubmitting(true);
+        try {
+            await api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' });
+            refetchOrders();
+            closeDetails();
+        } catch (error) {
+            console.error("Error submitting L1:", error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -476,7 +504,8 @@ export function Orders() {
                     </Button>
                 </Group>
 
-                <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
+                <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)', position: 'relative' }}>
+                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
                     <Group mb="lg" justify="space-between" wrap="wrap">
                         <TextInput
                             placeholder="Search PO # or Supplier..."
@@ -694,7 +723,7 @@ export function Orders() {
 
                         <Group justify="flex-end">
                             <Button variant="subtle" color="gray" onClick={close}>Cancel</Button>
-                            <Button type="submit" size="md" radius="md" px="xl" variant="gradient" gradient={{ from: 'blue', to: 'indigo' }}>
+                            <Button type="submit" size="md" radius="md" px="xl" variant="gradient" gradient={{ from: 'blue', to: 'indigo' }} loading={submitting}>
                                 {isEditing ? 'Save Changes' : 'Create Purchase Order'}
                             </Button>
                         </Group>
@@ -799,7 +828,7 @@ export function Orders() {
 
                                 <Group gap="md">
                                     {selectedOrder.status === 'DRAFT' && (
-                                        <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={() => api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' }).then(refetchOrders).then(closeDetails)}>
+                                        <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={handleSubmitL1} loading={submitting}>
                                             Submit for Level 1 Approval
                                         </Button>
                                     )}
@@ -909,6 +938,7 @@ export function Orders() {
                             <Button
                                 color={approvalForm.values.decision === 'REJECTED' ? 'red' : 'green'}
                                 type="submit"
+                                loading={submitting}
                             >
                                 Confirm {approvalForm.values.level === 2 && approvalForm.values.decision === 'APPROVED' ? 'Order Placed' : approvalForm.values.decision}
                             </Button>
@@ -929,7 +959,7 @@ export function Orders() {
                         <TextInput label="Notes" {...trackingForm.getInputProps('notes')} />
                         <Group justify="flex-end">
                             <Button variant="subtle" color="gray" onClick={closeTracking}>Cancel</Button>
-                            <Button type="submit">Update</Button>
+                            <Button type="submit" loading={submitting}>Update</Button>
                         </Group>
                     </Stack>
                 </form>

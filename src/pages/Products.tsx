@@ -1,4 +1,4 @@
-import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box, NumberInput } from "@mantine/core";
+import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box, NumberInput, LoadingOverlay } from "@mantine/core";
 import { IconPlus, IconPencil, IconTrash, IconClock, IconDownload } from "@tabler/icons-react";
 import { downloadCSV } from "../utils/export";
 import { useEffect, useState } from "react";
@@ -18,10 +18,12 @@ export function Products() {
 
     const {
         data: products, page, limit, totalPages, search,
-        setSearch, setPage, setLimit, refetch, rangeText,
+        setSearch, setPage, setLimit, refetch, rangeText, loading
     } = usePaginatedData(
         (p, l, s, signal) => api.getProductsPaginated(p, l, s, signal)
     );
+
+    const [submitting, setSubmitting] = useState(false);
 
     // Load categories for the form dropdown
     useEffect(() => {
@@ -46,6 +48,7 @@ export function Products() {
     });
 
     const handleSubmit = async (values: typeof form.values) => {
+        setSubmitting(true);
         try {
             if (editingId) {
                 await api.updateProduct(editingId, values);
@@ -58,6 +61,8 @@ export function Products() {
             refetch();
         } catch (error) {
             console.error("Error saving product:", error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -186,7 +191,8 @@ export function Products() {
                     </Group>
                 </Group>
 
-                <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
+                <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)', position: 'relative' }}>
+                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
                     <SearchBar
                         search={search}
                         onSearchChange={setSearch}
@@ -296,7 +302,7 @@ export function Products() {
                             <Button variant="subtle" color="gray" onClick={close} radius="md">
                                 Cancel
                             </Button>
-                            <Button type="submit" radius="md" px="xl" variant="filled">
+                            <Button type="submit" radius="md" px="xl" variant="filled" loading={submitting}>
                                 {editingId ? "Save Changes" : "Create Product"}
                             </Button>
                         </Group>

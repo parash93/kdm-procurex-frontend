@@ -1,6 +1,6 @@
 import {
     Table, Group, Title, Badge, Paper, Stack, Text, Box,
-    Select, Tooltip, Code, Modal, ScrollArea, JsonInput, Button,
+    Select, Tooltip, Code, Modal, ScrollArea, JsonInput, Button, LoadingOverlay,
 } from "@mantine/core";
 import { IconHistory, IconEye, IconDownload } from "@tabler/icons-react";
 import { downloadCSV } from "../utils/export";
@@ -103,6 +103,7 @@ export function AuditLogs() {
         setPage,
         setLimit,
         rangeText,
+        loading
     } = usePaginatedData(
         (p, l, s, signal) =>
             api.getAuditLogsPaginated(
@@ -238,8 +239,9 @@ export function AuditLogs() {
                     radius="md"
                     withBorder
                     shadow="sm"
-                    style={{ backgroundColor: "var(--mantine-color-body)" }}
+                    style={{ backgroundColor: "var(--mantine-color-body)", position: 'relative' }}
                 >
+                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
                     <Stack gap="md">
                         <SearchBar
                             search={search}

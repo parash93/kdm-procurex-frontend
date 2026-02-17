@@ -13,6 +13,7 @@ import {
     TextInput,
     NumberInput,
     ScrollArea,
+    LoadingOverlay,
 } from "@mantine/core";
 import {
     IconPlus,
@@ -36,6 +37,7 @@ export function Inventory() {
     const { user, isAdmin } = useAuth();
     const [inventory, setInventory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [search, setSearch] = useState("");
     const [historyOpened, { open: openHistory, close: closeHistory }] = useDisclosure(false);
     const [updateOpened, { open: openUpdate, close: closeUpdate }] = useDisclosure(false);
@@ -98,6 +100,7 @@ export function Inventory() {
     };
 
     const onSubmitUpdate = async (values: typeof updateForm.values) => {
+        setSubmitting(true);
         try {
             await api.updateInventory({
                 productId: selectedProduct.id,
@@ -117,6 +120,8 @@ export function Inventory() {
                 message: "Failed to update stock",
                 color: "red"
             });
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -202,7 +207,8 @@ export function Inventory() {
                     <Text c="dimmed" size="sm">Track stock levels and movement across your catalog.</Text>
                 </Box>
 
-                <Paper p="md" radius="md" withBorder shadow="sm">
+                <Paper p="md" radius="md" withBorder shadow="sm" style={{ position: 'relative' }}>
+                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
                     <Group mb="lg">
                         <TextInput
                             placeholder="Search inventory by product name..."
@@ -236,10 +242,8 @@ export function Inventory() {
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
-                                {loading ? (
-                                    <Table.Tr><Table.Td colSpan={4} ta="center" py="xl">Loading inventory...</Table.Td></Table.Tr>
-                                ) : rows.length > 0 ? rows : (
-                                    <Table.Tr><Table.Td colSpan={4} ta="center" py="xl">No items found</Table.Td></Table.Tr>
+                                {rows.length > 0 ? rows : (
+                                    <Table.Tr><Table.Td colSpan={5} ta="center" py="xl">No items found</Table.Td></Table.Tr>
                                 )}
                             </Table.Tbody>
                         </Table>
@@ -316,6 +320,7 @@ export function Inventory() {
                             <Button
                                 type="submit"
                                 color={updateForm.values.type === 'ADD' ? 'green' : 'orange'}
+                                loading={submitting}
                             >
                                 Confirm Update
                             </Button>

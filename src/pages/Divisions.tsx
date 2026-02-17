@@ -1,4 +1,4 @@
-import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
+import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box, LoadingOverlay } from "@mantine/core";
 import { IconPlus, IconPencil, IconTrash, IconDownload } from "@tabler/icons-react";
 import { downloadCSV } from "../utils/export";
 import { useState } from "react";
@@ -15,10 +15,12 @@ export function Divisions() {
 
     const {
         data: divisions, page, limit, totalPages, search,
-        setSearch, setPage, setLimit, refetch, rangeText,
+        setSearch, setPage, setLimit, refetch, rangeText, loading
     } = usePaginatedData(
         (p, l, s, signal) => api.getDivisionsPaginated(p, l, s, signal)
     );
+
+    const [submitting, setSubmitting] = useState(false);
 
     const form = useForm({
         initialValues: {
@@ -32,6 +34,7 @@ export function Divisions() {
     });
 
     const handleSubmit = async (values: typeof form.values) => {
+        setSubmitting(true);
         try {
             if (editingId) {
                 await api.updateDivision(Number(editingId), values);
@@ -44,6 +47,8 @@ export function Divisions() {
             refetch();
         } catch (error) {
             console.error("Error saving division:", error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -149,7 +154,8 @@ export function Divisions() {
                     </Group>
                 </Group>
 
-                <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
+                <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)', position: 'relative' }}>
+                    <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
                     <SearchBar
                         search={search}
                         onSearchChange={setSearch}
@@ -240,7 +246,7 @@ export function Divisions() {
                             <Button variant="subtle" color="gray" onClick={close} radius="md">
                                 Cancel
                             </Button>
-                            <Button type="submit" radius="md" px="xl" variant="filled">
+                            <Button type="submit" radius="md" px="xl" variant="filled" loading={submitting}>
                                 {editingId ? "Save Changes" : "Create Division"}
                             </Button>
                         </Group>

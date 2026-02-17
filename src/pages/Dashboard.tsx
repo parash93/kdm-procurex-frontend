@@ -10,7 +10,8 @@ import {
     Badge,
     Table,
     Alert,
-    Card
+    Card,
+    LoadingOverlay,
 } from "@mantine/core";
 import {
     IconShoppingCart,
@@ -26,10 +27,12 @@ import { api } from "../api/client";
 
 export function Dashboard() {
     const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [delayedOrders, setDelayedOrders] = useState<any[]>([]);
     const [ordersByDivision, setOrdersByDivision] = useState<any[]>([]);
 
     const fetchData = async () => {
+        setLoading(true);
         try {
             const [statsData, delayedData, divisionData] = await Promise.all([
                 api.getDashboardStats(),
@@ -41,6 +44,8 @@ export function Dashboard() {
             setOrdersByDivision(divisionData);
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -67,7 +72,8 @@ export function Dashboard() {
     };
 
     return (
-        <Box pb="xl">
+        <Box pb="xl" pos="relative">
+            <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
             <Stack gap="xl">
                 <Box>
                     <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Procurement Dashboard</Title>

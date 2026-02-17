@@ -66,7 +66,6 @@ export function Orders() {
     const [opened, { open, close }] = useDisclosure(false);
     const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
     const [approvalModalOpened, { open: openApproval, close: closeApproval }] = useDisclosure(false);
-    const [trackingModalOpened, { open: openTracking, close: closeTracking }] = useDisclosure(false);
 
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
@@ -135,15 +134,7 @@ export function Orders() {
         }
     });
 
-    // Tracking Update Form
-    const trackingForm = useForm({
-        initialValues: {
-            stage: "IN_PRODUCTION",
-            notes: "",
-            photoUrl: "",
-            updatePOStatus: true
-        }
-    });
+
 
     const [fetchVersion, setFetchVersion] = useState(0);
     const refetchOrders = useCallback(() => setFetchVersion(v => v + 1), []);
@@ -248,10 +239,9 @@ export function Orders() {
     const handleViewDetails = async (order: any) => {
         setSelectedOrder(order);
         try {
-            const [tracking] = await Promise.all([
-                api.getTrackingHistory(order.id),
-                // api.getInventory()
-            ]);
+            // Tracking history is now Dispatch based. 
+            // We could fetch dispatches related to this PO if needed.
+            // For now, just show order details.
 
             // Map inventory quantity to items
             const enrichedItems = order.items.map((item: any) => {
@@ -259,7 +249,7 @@ export function Orders() {
             });
 
             setSelectedOrder({ ...order, items: enrichedItems });
-            setTrackingHistory(tracking);
+            setTrackingHistory([]);
         } catch (err) {
             console.error("Error fetching details:", err);
             setTrackingHistory([]);
@@ -267,29 +257,7 @@ export function Orders() {
         openDetails();
     };
 
-    const handleOpenTracking = () => {
-        trackingForm.reset();
-        openTracking();
-    };
 
-    const onSubmitTracking = async (values: typeof trackingForm.values) => {
-        setSubmitting(true);
-        try {
-            await api.addTrackingUpdate({
-                poId: selectedOrder.id,
-                ...values,
-                updatePOStatus: true  // This ensures PO status updates, triggering inventory changes
-            });
-            closeTracking();
-            await handleViewDetails(selectedOrder);
-            refetchOrders();
-            notifications.show({ title: "Updated", message: "Tracking stage recorded", color: "blue" });
-        } catch (error) {
-            console.error("Error adding tracking update:", error);
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const handleOpenApprovalModal = (decision: "APPROVED" | "REJECTED", level: number) => {
         if (level == 1) {
@@ -770,6 +738,7 @@ export function Orders() {
                                     <Table.Th>Expected Delivery</Table.Th>
                                     {/* {isAdmin && <Table.Th ta="center">In Stock</Table.Th>} */}
                                     <Table.Th ta="center">PO Qty</Table.Th>
+                                    <Table.Th ta="center">Dispatched</Table.Th>
                                     {/* <Table.Th ta="right">Total</Table.Th> */}
                                 </Table.Tr>
                             </Table.Thead>
@@ -801,6 +770,9 @@ export function Orders() {
                                             )} */}
                                             <Table.Td ta="center">
                                                 <Text fw={700} c={isLowStock ? 'inherit' : 'inherit'}>{item.quantity}</Text>
+                                            </Table.Td>
+                                            <Table.Td ta="center">
+                                                <Text c={item.dispatchedQuantity >= item.quantity ? "green" : "dimmed"}>{item.dispatchedQuantity || 0}</Text>
                                             </Table.Td>
                                             {/* <Table.Td ta="right">{Number(item.unitPrice).toLocaleString()}</Table.Td> */}
                                             {/* <Table.Td ta="right" fw={900} c="blue">INR {Number(item.totalPrice).toLocaleString()}</Table.Td> */}
@@ -905,9 +877,6 @@ export function Orders() {
 
                         <Group justify="space-between" mt="xl" pt="md" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
                             <Group>
-                                {(selectedOrder.status === 'ORDER_PLACED' || selectedOrder.status.includes('IN_') || ['QUALITY_INSPECTION', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'PORT_CLEARANCE', 'DELIVERED', 'RETURNED'].includes(selectedOrder.status)) && (approvals.L1.includes(user?.role as string) || approvals.L2.includes(user?.role as string)) && (
-                                    <Button size="md" variant="gradient" gradient={{ from: 'teal', to: 'lime' }} leftSection={<IconShip size={18} />} onClick={handleOpenTracking}>Record Tracking Update</Button>
-                                )}
                                 {selectedOrder.status === 'DRAFT' && (
                                     <Button variant="subtle" color="blue" leftSection={<IconEdit size={18} />} onClick={() => { closeDetails(); handleEdit(selectedOrder); }}>Modify Draft</Button>
                                 )}
@@ -947,23 +916,7 @@ export function Orders() {
                 </form>
             </Modal>
 
-            {/* Tracking Modal */}
-            <Modal opened={trackingModalOpened} onClose={closeTracking} title="Add Tracking Update">
-                <form onSubmit={trackingForm.onSubmit(onSubmitTracking)}>
-                    <Stack>
-                        <Select
-                            label="Current Stage"
-                            data={['IN_PRODUCTION', 'QUALITY_INSPECTION', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'PORT_CLEARANCE', 'DELIVERED', 'RETURNED', 'CLOSED']}
-                            {...trackingForm.getInputProps('stage')}
-                        />
-                        <TextInput label="Notes" {...trackingForm.getInputProps('notes')} />
-                        <Group justify="flex-end">
-                            <Button variant="subtle" color="gray" onClick={closeTracking}>Cancel</Button>
-                            <Button type="submit" loading={submitting}>Update</Button>
-                        </Group>
-                    </Stack>
-                </form>
-            </Modal>
+
         </Box>
     );
 }

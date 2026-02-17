@@ -101,13 +101,23 @@ export const api = {
         return response.data;
     },
 
-    // Tracking
-    addTrackingUpdate: async (data: any) => {
-        const response = await apiClient.post("/tracking", data);
+    // Dispatches
+    getDispatches: async (page: number = 1, limit: number = 10, search?: string) => {
+        const response = await apiClient.get("/dispatches", {
+            params: { page, limit, search }
+        });
         return response.data;
     },
-    getTrackingHistory: async (poId: number) => {
-        const response = await apiClient.get(`/tracking/${poId}`);
+    createDispatch: async (data: any) => {
+        const response = await apiClient.post("/dispatches", data);
+        return response.data;
+    },
+    getDispatchById: async (id: number) => {
+        const response = await apiClient.get(`/dispatches/${id}`);
+        return response.data;
+    },
+    updateDispatchStatus: async (id: number, status: string, notes?: string) => {
+        const response = await apiClient.put(`/dispatches/${id}/status`, { status, notes });
         return response.data;
     },
 

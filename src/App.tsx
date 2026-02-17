@@ -14,6 +14,7 @@ import { ProductCategories } from "./pages/ProductCategories";
 import { Products } from "./pages/Products";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
+import { AuditLogs } from "./pages/AuditLogs";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { navItems, hasAccess, type AppRole } from "./config/navigation";
@@ -56,6 +57,7 @@ const routeComponents: Record<string, React.ReactNode> = {
   "/products": <Products />,
   "/orders": <Orders />,
   "/users": <UserManagement />,
+  "/audit-logs": <AuditLogs />,
 };
 
 /* ================================

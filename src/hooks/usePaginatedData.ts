@@ -13,6 +13,8 @@ interface UsePaginatedDataOptions {
     initialLimit?: number;
     /** Debounce delay in ms (default: 400) */
     debounceMs?: number;
+    /** Additional dependencies that should trigger a refetch when changed */
+    extraDeps?: any[];
 }
 
 interface UsePaginatedDataReturn<T> {
@@ -124,7 +126,8 @@ export function usePaginatedData<T>(
         return () => {
             controller.abort();
         };
-    }, [page, limit, debouncedSearch, fetchVersion]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, limit, debouncedSearch, fetchVersion, ...(options.extraDeps || [])]);
 
     const refetch = useCallback(() => {
         setFetchVersion(v => v + 1);

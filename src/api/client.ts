@@ -210,4 +210,25 @@ export const api = {
         const response = await apiClient.post("/inventory/update", data);
         return response.data;
     },
+
+    // Audit Logs
+    getAuditLogsPaginated: async (
+        page: number = 1,
+        limit: number = 20,
+        search?: string,
+        entityType?: string,
+        action?: string,
+        entityId?: number,
+        signal?: AbortSignal
+    ) => {
+        const response = await apiClient.get("/audit/paginated", {
+            params: { page, limit, search, entityType, action, entityId },
+            signal,
+        });
+        return response.data;
+    },
+    getEntityAuditHistory: async (entityType: string, entityId: number) => {
+        const response = await apiClient.get(`/audit/${entityType}/${entityId}`);
+        return response.data;
+    },
 };

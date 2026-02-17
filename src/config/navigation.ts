@@ -6,6 +6,7 @@ import {
     IconCategory,
     IconPackage,
     IconUsers,
+    IconHistory,
 } from "@tabler/icons-react";
 import type { Icon } from "@tabler/icons-react";
 
@@ -42,6 +43,7 @@ export const navItems: NavItem[] = [
     { icon: IconPackage, label: "Products", to: "/products", roles: ["ADMIN", "OPERATIONS"] },
     { icon: IconShoppingCart, label: "Orders", to: "/orders", roles: ["ADMIN", "OPERATIONS", "SALES_MANAGER"] },
     { icon: IconUsers, label: "Users", to: "/users", roles: ["ADMIN"] },
+    { icon: IconHistory, label: "Audit Logs", to: "/audit-logs", roles: ["ADMIN"] },
 ];
 
 /* ================================

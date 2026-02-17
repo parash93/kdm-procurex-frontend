@@ -1,19 +1,31 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box, NumberInput } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconSearch, IconClock } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconClock } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { usePaginatedData } from "../hooks/usePaginatedData";
+import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 
 export function Products() {
     const isMobile = useMediaQuery('(max-width: 768px)');
     const { isAdmin } = useAuth();
-    const [products, setProducts] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [search, setSearch] = useState("");
+
+    const {
+        data: products, page, limit, totalPages, search,
+        setSearch, setPage, setLimit, refetch, rangeText,
+    } = usePaginatedData(
+        (p, l, s) => api.getProductsPaginated(p, l, s)
+    );
+
+    // Load categories for the form dropdown
+    useEffect(() => {
+        api.getProductCategories().then(setCategories).catch(console.error);
+    }, []);
 
     const form = useForm({
         initialValues: {
@@ -30,25 +42,6 @@ export function Products() {
         },
     });
 
-    const fetchData = async () => {
-        try {
-            const [productsData, categoriesData] = await Promise.all([
-                api.getProducts(),
-                api.getProductCategories()
-            ]);
-            setProducts(productsData || []);
-            setCategories(categoriesData || []);
-        } catch (error) {
-            console.error("Error fetching products/categories:", error);
-            setProducts([]);
-            setCategories([]);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
@@ -59,7 +52,7 @@ export function Products() {
             close();
             form.reset();
             setEditingId(null);
-            fetchData();
+            refetch();
         } catch (error) {
             console.error("Error saving product:", error);
         }
@@ -83,7 +76,7 @@ export function Products() {
         if (window.confirm("Are you sure you want to delete this product?")) {
             try {
                 await api.deleteProduct(id);
-                fetchData();
+                refetch();
             } catch (error) {
                 console.error("Error deleting product:", error);
             }
@@ -98,12 +91,7 @@ export function Products() {
         open();
     };
 
-    const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        (p.category?.name && p.category.name.toLowerCase().includes(search.toLowerCase()))
-    );
-
-    const rows = filteredProducts.map((element: any) => (
+    const rows = products.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
                 <Text fw={500}>{element.name}</Text>
@@ -167,16 +155,13 @@ export function Products() {
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
-                    <Group mb="lg">
-                        <TextInput
-                            placeholder="Search products by name or category..."
-                            leftSection={<IconSearch size={16} />}
-                            value={search}
-                            onChange={(e) => setSearch(e.currentTarget.value)}
-                            style={{ flex: 1 }}
-                            radius="md"
-                        />
-                    </Group>
+                    <SearchBar
+                        search={search}
+                        onSearchChange={setSearch}
+                        searchPlaceholder="Search products by name or category..."
+                        limit={limit}
+                        onLimitChange={setLimit}
+                    />
 
                     <Table.ScrollContainer minWidth={800}>
                         <Table verticalSpacing="md" highlightOnHover>
@@ -200,6 +185,13 @@ export function Products() {
                             </Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
+
+                    <PaginationFooter
+                        totalPages={totalPages}
+                        page={page}
+                        onPageChange={setPage}
+                        rangeText={rangeText}
+                    />
                 </Paper>
             </Stack>
 

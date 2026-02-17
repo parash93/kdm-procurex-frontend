@@ -1,18 +1,9 @@
 import { AppShell, Burger, Group, NavLink, Text, Stack, ActionIcon, Avatar, Menu, Box, Divider, Badge } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-    IconDashboard,
-    IconTruck,
-    IconShoppingCart,
-    IconBuildingSkyscraper,
-    IconCategory,
-    IconPackage,
-    IconUsers,
-    IconLogout,
-    IconChevronRight
-} from "@tabler/icons-react";
+import { IconUsers, IconLogout, IconChevronRight } from "@tabler/icons-react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getNavItemsForRole } from "../config/navigation";
 
 export function Layout() {
     const [opened, { toggle }] = useDisclosure();
@@ -20,36 +11,22 @@ export function Layout() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const links = [
-        { icon: IconDashboard, label: 'Dashboard', to: '/dashboard', roles: ['ADMIN', 'OPERATIONS', 'SALES_MANAGER'] },
-        { icon: IconTruck, label: 'Suppliers', to: '/suppliers', roles: ['ADMIN', 'OPERATIONS'] },
-        { icon: IconBuildingSkyscraper, label: 'Divisions', to: '/divisions', roles: ['ADMIN', 'OPERATIONS'] },
-        { icon: IconCategory, label: 'Product Categories', to: '/product-categories', roles: ['ADMIN', 'OPERATIONS'] },
-        { icon: IconPackage, label: 'Products', to: '/products', roles: ['ADMIN', 'OPERATIONS'] },
-        { icon: IconShoppingCart, label: 'Orders', to: '/orders', roles: ['ADMIN', 'OPERATIONS', 'SALES_MANAGER'] },
-        { icon: IconUsers, label: 'Users', to: '/users', roles: ['ADMIN'] },
-        // { icon: IconPackage, label: 'Inventory', to: '/inventory' },
-    ];
+    const visibleLinks = getNavItemsForRole(user?.role);
 
-    const items = links.map((link) => {
-        if (!link.roles.includes(user?.role || '')) {
-            return null;
-        }
-        return (
-            <NavLink
-                key={link.label}
-                active={location.pathname === link.to}
-                label={link.label}
-                leftSection={<link.icon size="1.2rem" stroke={1.5} />}
-                rightSection={<IconChevronRight size="0.8rem" stroke={1.5} />}
-                onClick={() => navigate(link.to)}
-                variant="light"
-                styles={{
-                    label: { fontWeight: 500 }
-                }}
-            />
-        );
-    });
+    const items = visibleLinks.map((link) => (
+        <NavLink
+            key={link.label}
+            active={location.pathname === link.to}
+            label={link.label}
+            leftSection={<link.icon size="1.2rem" stroke={1.5} />}
+            rightSection={<IconChevronRight size="0.8rem" stroke={1.5} />}
+            onClick={() => navigate(link.to)}
+            variant="light"
+            styles={{
+                label: { fontWeight: 500 }
+            }}
+        />
+    ));
 
 
     return (

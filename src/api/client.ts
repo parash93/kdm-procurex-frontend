@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-//const BASE_URL = 'http://localhost:3000/v1';
-const BASE_URL = 'https://creativeworld.info/kdm-procurex-backend/v1';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/v1';
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
@@ -38,6 +37,12 @@ export const api = {
         const response = await apiClient.get("/suppliers");
         return response.data;
     },
+    getSuppliersPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+        const response = await apiClient.get("/suppliers/paginated", {
+            params: { page, limit, search },
+        });
+        return response.data;
+    },
     createSupplier: async (data: any) => {
         const response = await apiClient.post("/suppliers", data);
         return response.data;
@@ -51,6 +56,12 @@ export const api = {
     },
     getOrders: async () => {
         const response = await apiClient.get("/orders");
+        return response.data;
+    },
+    getOrdersPaginated: async (page: number = 1, limit: number = 10, search?: string, status?: string) => {
+        const response = await apiClient.get("/orders/paginated", {
+            params: { page, limit, search, status },
+        });
         return response.data;
     },
     getOrder: async (id: number) => {
@@ -117,6 +128,12 @@ export const api = {
         const response = await apiClient.get("/divisions");
         return response.data;
     },
+    getDivisionsPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+        const response = await apiClient.get("/divisions/paginated", {
+            params: { page, limit, search },
+        });
+        return response.data;
+    },
     createDivision: async (data: any) => {
         const response = await apiClient.post("/divisions", data);
         return response.data;
@@ -134,6 +151,12 @@ export const api = {
         const response = await apiClient.get("/product-categories");
         return response.data;
     },
+    getProductCategoriesPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+        const response = await apiClient.get("/product-categories/paginated", {
+            params: { page, limit, search },
+        });
+        return response.data;
+    },
     createProductCategory: async (data: any) => {
         const response = await apiClient.post("/product-categories", data);
         return response.data;
@@ -149,6 +172,12 @@ export const api = {
     // Products
     getProducts: async () => {
         const response = await apiClient.get("/products");
+        return response.data;
+    },
+    getProductsPaginated: async (page: number = 1, limit: number = 10, search?: string) => {
+        const response = await apiClient.get("/products/paginated", {
+            params: { page, limit, search },
+        });
         return response.data;
     },
     createProduct: async (data: any) => {

@@ -1,16 +1,23 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconSearch } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
+import { usePaginatedData } from "../hooks/usePaginatedData";
+import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 
 export function Suppliers() {
     const isMobile = useMediaQuery('(max-width: 768px)');
-    const [suppliers, setSuppliers] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [search, setSearch] = useState("");
+
+    const {
+        data: suppliers, page, limit, totalPages, search,
+        setSearch, setPage, setLimit, refetch, rangeText,
+    } = usePaginatedData(
+        (p, l, s) => api.getSuppliersPaginated(p, l, s)
+    );
 
     const form = useForm({
         initialValues: {
@@ -27,16 +34,6 @@ export function Suppliers() {
         },
     });
 
-    const fetchSuppliers = () => {
-        api.getSuppliers()
-            .then(setSuppliers)
-            .catch(console.error);
-    };
-
-    useEffect(() => {
-        fetchSuppliers();
-    }, []);
-
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
@@ -47,7 +44,7 @@ export function Suppliers() {
             close();
             form.reset();
             setEditingId(null);
-            fetchSuppliers();
+            refetch();
         } catch (error) {
             console.error("Error saving supplier:", error);
         }
@@ -70,7 +67,7 @@ export function Suppliers() {
         if (window.confirm("Are you sure you want to delete this supplier?")) {
             try {
                 await api.deleteSupplier(Number(id));
-                fetchSuppliers();
+                refetch();
             } catch (error) {
                 console.error("Error deleting supplier:", error);
             }
@@ -84,12 +81,7 @@ export function Suppliers() {
         open();
     };
 
-    const filteredSuppliers = suppliers.filter(s =>
-        s.companyName.toLowerCase().includes(search.toLowerCase()) ||
-        (s.contactPerson && s.contactPerson.toLowerCase().includes(search.toLowerCase()))
-    );
-
-    const rows = filteredSuppliers.map((element: any) => (
+    const rows = suppliers.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
                 <Text fw={500}>{element.companyName}</Text>
@@ -139,16 +131,13 @@ export function Suppliers() {
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
-                    <Group mb="lg">
-                        <TextInput
-                            placeholder="Search suppliers by name or contact..."
-                            leftSection={<IconSearch size={16} />}
-                            value={search}
-                            onChange={(e) => setSearch(e.currentTarget.value)}
-                            style={{ flex: 1 }}
-                            radius="md"
-                        />
-                    </Group>
+                    <SearchBar
+                        search={search}
+                        onSearchChange={setSearch}
+                        searchPlaceholder="Search suppliers by name or contact..."
+                        limit={limit}
+                        onLimitChange={setLimit}
+                    />
 
                     <Table.ScrollContainer minWidth={800}>
                         <Table verticalSpacing="md" highlightOnHover>
@@ -172,6 +161,13 @@ export function Suppliers() {
                             </Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
+
+                    <PaginationFooter
+                        totalPages={totalPages}
+                        page={page}
+                        onPageChange={setPage}
+                        rangeText={rangeText}
+                    />
                 </Paper>
             </Stack>
 

@@ -1,16 +1,23 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconSearch } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
+import { usePaginatedData } from "../hooks/usePaginatedData";
+import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 
 export function ProductCategories() {
     const isMobile = useMediaQuery('(max-width: 768px)');
-    const [categories, setCategories] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [search, setSearch] = useState("");
+
+    const {
+        data: categories, page, limit, totalPages, search,
+        setSearch, setPage, setLimit, refetch, rangeText,
+    } = usePaginatedData(
+        (p, l, s) => api.getProductCategoriesPaginated(p, l, s)
+    );
 
     const form = useForm({
         initialValues: {
@@ -22,16 +29,6 @@ export function ProductCategories() {
         },
     });
 
-    const fetchCategories = () => {
-        api.getProductCategories()
-            .then(setCategories)
-            .catch(console.error);
-    };
-
-    useEffect(() => {
-        fetchCategories();
-    }, []);
-
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
@@ -42,7 +39,7 @@ export function ProductCategories() {
             close();
             form.reset();
             setEditingId(null);
-            fetchCategories();
+            refetch();
         } catch (error) {
             console.error("Error saving category:", error);
         }
@@ -61,7 +58,7 @@ export function ProductCategories() {
         if (window.confirm("Are you sure you want to delete this category?")) {
             try {
                 await api.deleteProductCategory(Number(id));
-                fetchCategories();
+                refetch();
             } catch (error) {
                 console.error("Error deleting category:", error);
             }
@@ -75,11 +72,7 @@ export function ProductCategories() {
         open();
     };
 
-    const filteredCategories = categories.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase())
-    );
-
-    const rows = filteredCategories.map((element: any) => (
+    const rows = categories.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
                 <Text fw={500}>{element.name}</Text>
@@ -127,16 +120,13 @@ export function ProductCategories() {
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
-                    <Group mb="lg">
-                        <TextInput
-                            placeholder="Search categories by name..."
-                            leftSection={<IconSearch size={16} />}
-                            value={search}
-                            onChange={(e) => setSearch(e.currentTarget.value)}
-                            style={{ flex: 1 }}
-                            radius="md"
-                        />
-                    </Group>
+                    <SearchBar
+                        search={search}
+                        onSearchChange={setSearch}
+                        searchPlaceholder="Search categories by name..."
+                        limit={limit}
+                        onLimitChange={setLimit}
+                    />
 
                     <Table.ScrollContainer minWidth={400}>
                         <Table verticalSpacing="md" highlightOnHover>
@@ -158,6 +148,13 @@ export function ProductCategories() {
                             </Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
+
+                    <PaginationFooter
+                        totalPages={totalPages}
+                        page={page}
+                        onPageChange={setPage}
+                        rangeText={rangeText}
+                    />
                 </Paper>
             </Stack>
 

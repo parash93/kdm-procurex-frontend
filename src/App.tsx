@@ -16,20 +16,7 @@ import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
-
-/* ================================
-   ROLE ACCESS CONFIGURATION
-================================ */
-
-const roleAccess = [
-  { label: "Dashboard", to: "/dashboard", roles: ["ADMIN", "OPERATIONS", "SALES_MANAGER"] },
-  { label: "Suppliers", to: "/suppliers", roles: ["ADMIN", "OPERATIONS"] },
-  { label: "Divisions", to: "/divisions", roles: ["ADMIN", "OPERATIONS"] },
-  { label: "Product Categories", to: "/product-categories", roles: ["ADMIN", "OPERATIONS"] },
-  { label: "Products", to: "/products", roles: ["ADMIN", "OPERATIONS"] },
-  { label: "Orders", to: "/orders", roles: ["ADMIN", "OPERATIONS", "SALES_MANAGER"] },
-  { label: "Users", to: "/users", roles: ["ADMIN"] },
-];
+import { navItems, hasAccess, type AppRole } from "./config/navigation";
 
 /* ================================
    PROTECTED ROUTE COMPONENT
@@ -40,7 +27,7 @@ const ProtectedRoute = ({
   allowedRoles,
 }: {
   children: React.ReactNode;
-  allowedRoles?: string[];
+  allowedRoles?: AppRole[];
 }) => {
   const { isAuthenticated, user } = useAuth();
 
@@ -49,12 +36,8 @@ const ProtectedRoute = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Role restriction (ADMIN override enabled)
-  if (
-    allowedRoles &&
-    user?.role !== "ADMIN" &&
-    !allowedRoles.includes(user?.role as string)
-  ) {
+  // Role restriction
+  if (allowedRoles && !hasAccess(user?.role, allowedRoles)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -103,7 +86,7 @@ export default function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
 
               {/* Dynamic Protected Routes */}
-              {roleAccess.map((route) => (
+              {navItems.map((route) => (
                 <Route
                   key={route.to}
                   path={route.to.replace("/", "")}

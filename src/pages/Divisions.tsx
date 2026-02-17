@@ -1,16 +1,23 @@
 import { Table, Button, Group, Title, Badge, ActionIcon, Modal, TextInput, Select, Paper, Stack, Text, Box } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconSearch } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
+import { usePaginatedData } from "../hooks/usePaginatedData";
+import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 
 export function Divisions() {
     const isMobile = useMediaQuery('(max-width: 768px)');
-    const [divisions, setDivisions] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [search, setSearch] = useState("");
+
+    const {
+        data: divisions, page, limit, totalPages, search,
+        setSearch, setPage, setLimit, refetch, rangeText,
+    } = usePaginatedData(
+        (p, l, s) => api.getDivisionsPaginated(p, l, s)
+    );
 
     const form = useForm({
         initialValues: {
@@ -23,16 +30,6 @@ export function Divisions() {
         },
     });
 
-    const fetchDivisions = () => {
-        api.getDivisions()
-            .then(setDivisions)
-            .catch(console.error);
-    };
-
-    useEffect(() => {
-        fetchDivisions();
-    }, []);
-
     const handleSubmit = async (values: typeof form.values) => {
         try {
             if (editingId) {
@@ -43,7 +40,7 @@ export function Divisions() {
             close();
             form.reset();
             setEditingId(null);
-            fetchDivisions();
+            refetch();
         } catch (error) {
             console.error("Error saving division:", error);
         }
@@ -63,7 +60,7 @@ export function Divisions() {
         if (window.confirm("Are you sure you want to delete this division?")) {
             try {
                 await api.deleteDivision(Number(id));
-                fetchDivisions();
+                refetch();
             } catch (error) {
                 console.error("Error deleting division:", error);
             }
@@ -77,12 +74,7 @@ export function Divisions() {
         open();
     };
 
-    const filteredDivisions = divisions.filter(d =>
-        d.name.toLowerCase().includes(search.toLowerCase()) ||
-        (d.contactPerson && d.contactPerson.toLowerCase().includes(search.toLowerCase()))
-    );
-
-    const rows = filteredDivisions.map((element: any) => (
+    const rows = divisions.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
                 <Text fw={500}>{element.name}</Text>
@@ -131,16 +123,13 @@ export function Divisions() {
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
-                    <Group mb="lg">
-                        <TextInput
-                            placeholder="Search divisions by name..."
-                            leftSection={<IconSearch size={16} />}
-                            value={search}
-                            onChange={(e) => setSearch(e.currentTarget.value)}
-                            style={{ flex: 1 }}
-                            radius="md"
-                        />
-                    </Group>
+                    <SearchBar
+                        search={search}
+                        onSearchChange={setSearch}
+                        searchPlaceholder="Search divisions by name..."
+                        limit={limit}
+                        onLimitChange={setLimit}
+                    />
 
                     <Table.ScrollContainer minWidth={600}>
                         <Table verticalSpacing="md" highlightOnHover>
@@ -163,6 +152,13 @@ export function Divisions() {
                             </Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
+
+                    <PaginationFooter
+                        totalPages={totalPages}
+                        page={page}
+                        onPageChange={setPage}
+                        rangeText={rangeText}
+                    />
                 </Paper>
             </Stack>
 

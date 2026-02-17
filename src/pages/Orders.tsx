@@ -17,7 +17,8 @@ import {
     Grid,
     ScrollArea,
     Card,
-    Timeline
+    Timeline,
+    Pagination
 } from "@mantine/core";
 import {
     IconPlus,
@@ -33,17 +34,22 @@ import {
     IconShoppingCart,
     IconPackage,
 } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useMediaQuery, useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { notifications } from "@mantine/notifications";
 
+const PAGE_SIZE_OPTIONS = [
+    { value: '10', label: '10 per page' },
+    { value: '20', label: '20 per page' },
+    { value: '50', label: '50 per page' },
+];
+
 export function Orders() {
     const isMobile = useMediaQuery('(max-width: 768px)');
     const { user, isAdmin } = useAuth();
-    const [orders, setOrders] = useState<any[]>([]);
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [divisions, setDivisions] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
@@ -58,7 +64,38 @@ export function Orders() {
     const [trackingModalOpened, { open: openTracking, close: closeTracking }] = useDisclosure(false);
 
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
-    const [search, setSearch] = useState("");
+
+    // Pagination & search state
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [search, setSearchInput] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleSearchChange = useCallback((value: string) => {
+        setSearchInput(value);
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => {
+            setDebouncedSearch(value);
+            setPage(1);
+        }, 400);
+    }, []);
+
+    const handlePageSizeChange = (value: string | null) => {
+        if (value) {
+            setLimit(Number(value));
+            setPage(1);
+        }
+    };
+
+    const handleStatusFilterChange = (value: string | null) => {
+        setFilterStatus(value || 'ALL');
+        setPage(1);
+    };
+
     const approvals = {
         L1: ['ADMIN', 'OPERATIONS'],
         L2: ['ADMIN']
@@ -103,31 +140,48 @@ export function Orders() {
         }
     });
 
-    const fetchData = async () => {
+    const fetchOrders = useCallback(async () => {
         try {
-            const [ordersData, suppliersData, divisionsData, productsData] = await Promise.all([
-                api.getOrders(),
+            const result = await api.getOrdersPaginated(
+                page, limit,
+                debouncedSearch || undefined,
+                filterStatus !== 'ALL' ? filterStatus : undefined
+            );
+            setOrders(result.data || []);
+            setTotal(result.total || 0);
+            setTotalPages(result.totalPages || 1);
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+            setOrders([]);
+        }
+    }, [page, limit, debouncedSearch, filterStatus]);
+
+    const fetchDropdownData = async () => {
+        try {
+            const [suppliersData, divisionsData, productsData] = await Promise.all([
                 api.getSuppliers(),
                 api.getDivisions(),
                 api.getProducts()
             ]);
-            setOrders(ordersData || []);
             setSuppliers(suppliersData || []);
             setDivisions(divisionsData || []);
             setProducts(productsData || []);
 
-            // Only admins can see/fetch users list
             if (isAdmin) {
                 const usersData = await api.getAuthUsers();
                 setUsers(usersData || []);
             }
         } catch (error) {
-            console.error("Error fetching data:", error);
+            console.error("Error fetching dropdown data:", error);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        fetchOrders();
+    }, [fetchOrders]);
+
+    useEffect(() => {
+        fetchDropdownData();
     }, []);
 
     const handleAddItem = () => {
@@ -205,7 +259,7 @@ export function Orders() {
             });
             closeTracking();
             await handleViewDetails(selectedOrder);
-            fetchData();
+            fetchOrders();
             notifications.show({ title: "Updated", message: "Tracking stage recorded", color: "blue" });
         } catch (error) {
             console.error("Error adding tracking update:", error);
@@ -259,7 +313,7 @@ export function Orders() {
 
             closeApproval();
             await handleViewDetails(selectedOrder);
-            fetchData();
+            fetchOrders();
             close();
             notifications.show({ title: "Success", message: `PO level ${values.level} ${values.decision.toLowerCase()}`, color: "green" });
         } catch (error) {
@@ -302,19 +356,12 @@ export function Orders() {
                 await api.createOrder(values);
             }
             close();
-            fetchData();
+            fetchOrders();
             notifications.show({ title: "Success", message: `Order ${isEditing ? 'updated' : 'created'} successfully`, color: "green" });
         } catch (error) {
             console.error("Error saving order:", error);
         }
     };
-
-    const filteredOrders = orders.filter(o => {
-        const matchesSearch = o.poNumber.toLowerCase().includes(search.toLowerCase()) ||
-            o.supplier?.companyName.toLowerCase().includes(search.toLowerCase());
-        const matchesStatus = filterStatus === 'ALL' || o.status === filterStatus;
-        return matchesSearch && matchesStatus;
-    });
 
     const statusColors: Record<string, string> = {
         DRAFT: 'gray',
@@ -333,7 +380,11 @@ export function Orders() {
         CLOSED: 'dark'
     };
 
-    const rows = filteredOrders.map((element: any) => (
+    const from = orders.length > 0 ? (page - 1) * limit + 1 : 0;
+    const to = Math.min(page * limit, total);
+    const rangeText = `Showing ${from}–${to} of ${total} orders`;
+
+    const rows = orders.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
                 <Text fw={700} c="blue">{element.poNumber}</Text>
@@ -377,30 +428,43 @@ export function Orders() {
                         <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Purchase Orders</Title>
                         <Text c="dimmed" size="sm">Manage and track your procurement orders.</Text>
                     </Box>
-                    <Group align="flex-end">
-                        <Select
-                            label="Filter Status"
-                            placeholder="All Statuses"
-                            data={['ALL', ...Object.keys(statusColors)]}
-                            value={filterStatus}
-                            onChange={(val) => setFilterStatus(val || 'ALL')}
-                            style={{ width: 180 }}
-                            leftSection={<IconFilter size={16} />}
-                        />
-                        <TextInput
-                            placeholder="Search PO # or Supplier"
-                            leftSection={<IconSearch size={16} />}
-                            value={search}
-                            onChange={(e) => setSearch(e.currentTarget.value)}
-                            style={{ width: 250 }}
-                        />
-                        <Button variant="gradient" gradient={{ from: 'blue', to: 'indigo' }} leftSection={<IconPlus size={18} />} onClick={handleOpen}>
-                            New PO
-                        </Button>
-                    </Group>
+                    <Button variant="gradient" gradient={{ from: 'blue', to: 'indigo' }} leftSection={<IconPlus size={18} />} onClick={handleOpen}>
+                        New PO
+                    </Button>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
+                    <Group mb="lg" justify="space-between" wrap="wrap">
+                        <TextInput
+                            placeholder="Search PO # or Supplier..."
+                            leftSection={<IconSearch size={16} />}
+                            value={search}
+                            onChange={(e) => handleSearchChange(e.currentTarget.value)}
+                            style={{ flex: 1, minWidth: 200 }}
+                            radius="md"
+                        />
+                        <Group>
+                            <Select
+                                placeholder="Filter Status"
+                                data={['ALL', ...Object.keys(statusColors)]}
+                                value={filterStatus}
+                                onChange={handleStatusFilterChange}
+                                style={{ width: 180 }}
+                                leftSection={<IconFilter size={16} />}
+                                radius="md"
+                                allowDeselect={false}
+                            />
+                            <Select
+                                data={PAGE_SIZE_OPTIONS}
+                                value={String(limit)}
+                                onChange={handlePageSizeChange}
+                                w={150}
+                                radius="md"
+                                allowDeselect={false}
+                            />
+                        </Group>
+                    </Group>
+
                     <Table.ScrollContainer minWidth={900}>
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
@@ -424,6 +488,19 @@ export function Orders() {
                             </Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
+
+                    <Group justify="space-between" align="center" mt="lg" wrap="wrap">
+                        <Text size="sm" c="dimmed">{rangeText}</Text>
+                        {totalPages > 1 && (
+                            <Pagination
+                                total={totalPages}
+                                value={page}
+                                onChange={setPage}
+                                radius="md"
+                                withEdges
+                            />
+                        )}
+                    </Group>
                 </Paper>
             </Stack>
 
@@ -678,7 +755,7 @@ export function Orders() {
 
                                 <Group gap="md">
                                     {selectedOrder.status === 'DRAFT' && (
-                                        <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={() => api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' }).then(fetchData).then(closeDetails)}>
+                                        <Button color="blue" size="md" leftSection={<IconClock size={18} />} onClick={() => api.updateOrder(selectedOrder.id, { status: 'PENDING_L1' }).then(fetchOrders).then(closeDetails)}>
                                             Submit for Level 1 Approval
                                         </Button>
                                     )}

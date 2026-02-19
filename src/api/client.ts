@@ -6,19 +6,99 @@ const apiClient = axios.create({
     baseURL: BASE_URL,
 });
 
-// Add interceptor for JWT
-apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('procurex_token');
+// ─── Token helpers ───────────────────────────────────────────────────────────
+
+function getToken() {
+    return localStorage.getItem('procurex_token');
+}
+
+function getExpiresAt() {
+    const v = localStorage.getItem('procurex_token_expires_at');
+    return v ? parseInt(v, 10) : null;
+}
+
+function saveToken(token: string, expiresAt: number) {
+    localStorage.setItem('procurex_token', token);
+    localStorage.setItem('procurex_token_expires_at', String(expiresAt));
+}
+
+function clearAuth() {
+    localStorage.removeItem('procurex_token');
+    localStorage.removeItem('procurex_token_expires_at');
+    localStorage.removeItem('procurex_user');
+}
+
+// ─── Proactive refresh (sliding session) ─────────────────────────────────────
+// If the token has less than 25% of its lifetime left, refresh it before the request.
+const TOKEN_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+const REFRESH_THRESHOLD = 0.25; // refresh when < 25% lifetime remains
+let isRefreshing = false; // prevent parallel refresh calls
+
+async function maybeRefreshToken(): Promise<void> {
+    if (isRefreshing) return;
+    const token = getToken();
+    const expiresAt = getExpiresAt();
+    if (!token || !expiresAt) return;
+
+    const remaining = expiresAt - Date.now();
+    if (remaining > TOKEN_TTL_MS * REFRESH_THRESHOLD) return; // plenty of time left
+
+    try {
+        isRefreshing = true;
+        const response = await axios.post(
+            `${BASE_URL}/auth/refresh`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const { token: newToken, expiresAt: newExpiry } = response.data;
+        saveToken(newToken, newExpiry);
+    } catch {
+        // If refresh fails the existing token is still good until it truly expires
+    } finally {
+        isRefreshing = false;
+    }
+}
+
+// ─── Request interceptor: attach token + maybe refresh ───────────────────────
+apiClient.interceptors.request.use(async (config) => {
+    // Don't attempt to refresh when calling the refresh or login endpoints themselves
+    const isAuthEndpoint = config.url?.includes('/auth/refresh') || config.url?.includes('/auth/login');
+    if (!isAuthEndpoint) {
+        await maybeRefreshToken();
+    }
+
+    const token = getToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
 
+// ─── Response interceptor: auto-logout on 401 ────────────────────────────────
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            clearAuth();
+            // Notify the app to redirect to login
+            window.dispatchEvent(new CustomEvent('auth:logout'));
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const api = {
     // Auth
     login: async (params: any) => {
         const response = await apiClient.post('/auth/login', params);
+        // Persist the expiry so the proactive refresh logic can check it
+        if (response.data?.expiresAt) {
+            saveToken(response.data.token, response.data.expiresAt);
+        }
+        return response.data;
+    },
+    refreshToken: async () => {
+        const response = await apiClient.post('/auth/refresh', {});
         return response.data;
     },
     registerUser: async (params: any) => {

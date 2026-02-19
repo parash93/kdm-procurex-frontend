@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 
 interface User {
@@ -29,6 +29,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [token]);
 
+    const logout = useCallback(() => {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('procurex_token');
+        localStorage.removeItem('procurex_token_expires_at');
+        localStorage.removeItem('procurex_user');
+    }, []);
+
+    // Listen for 401 events dispatched by the Axios response interceptor.
+    // This ensures any expired/invalid token anywhere in the app triggers a logout.
+    useEffect(() => {
+        const handleForcedLogout = () => logout();
+        window.addEventListener('auth:logout', handleForcedLogout);
+        return () => window.removeEventListener('auth:logout', handleForcedLogout);
+    }, [logout]);
+
     const login = async (username: string, password?: string) => {
         const response = await api.login({ username, password });
         const { user: userData, token: jwtToken } = response;
@@ -37,13 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(jwtToken);
         localStorage.setItem('procurex_token', jwtToken);
         localStorage.setItem('procurex_user', JSON.stringify(userData));
-    };
-
-    const logout = () => {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem('procurex_token');
-        localStorage.removeItem('procurex_user');
     };
 
     const isAuthenticated = !!token;

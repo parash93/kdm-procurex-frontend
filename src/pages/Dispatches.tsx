@@ -3,17 +3,18 @@ import {
     TextInput, Select, Paper, Stack, Text, Box, LoadingOverlay,
     Stepper, NumberInput, Menu
 } from "@mantine/core";
-import { IconPlus, IconTruck, IconCheck, IconX, IconEye, IconRotateClockwise, IconEdit, IconPackage } from '@tabler/icons-react';
+import { IconPlus, IconTruck, IconCheck, IconX, IconEye, IconRotateClockwise, IconEdit, IconPackage, IconTrash } from '@tabler/icons-react';
 import { useState, useEffect } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { api } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 import { usePaginatedData } from "../hooks/usePaginatedData";
 import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 import { notifications } from "@mantine/notifications";
 
 export function Dispatches() {
-    // const isMobile = useMediaQuery('(max-width: 768px)');
+    const { isAdmin } = useAuth();
     const [opened, { open, close }] = useDisclosure(false);
 
     // Data Loading
@@ -28,6 +29,7 @@ export function Dispatches() {
     const [activeStep, setActiveStep] = useState(0);
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [poItems, setPoItems] = useState<any[]>([]);
+    const [loadingItems, setLoadingItems] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [viewDispatch, setViewDispatch] = useState<any | null>(null);
     const [viewModalOpened, { open: openViewModal, close: closeViewModal }] = useDisclosure(false);
@@ -36,10 +38,10 @@ export function Dispatches() {
     const [statusNote, setStatusNote] = useState('');
     const [updateModalOpened, { open: openUpdateModal, close: closeUpdateModal }] = useDisclosure(false);
 
+    // Form — no referenceNumber field anymore
     const form = useForm({
         initialValues: {
             supplierId: '', // string for Select
-            referenceNumber: '',
             remarks: '',
             items: [] as { poItemId: number; quantity: number; max: number; productName: string; poNumber: string }[]
         },
@@ -59,11 +61,13 @@ export function Dispatches() {
     // Fetch Suppliers on open
     useEffect(() => {
         if (opened) {
-            api.getSuppliers().then(setSuppliers).catch(console.error);
+            api.getSuppliers()
+                .then(data => setSuppliers((data || []).filter((s: any) => s.status === 'ACTIVE')))
+                .catch(console.error);
         }
     }, [opened]);
 
-    // Fetch PO Items when Supplier changes
+    // Fetch PO Items when Supplier changes — uses new backend endpoint that filters by product.supplierId
     const handleSupplierChange = async (supplierId: string | null) => {
         if (!supplierId) {
             form.setFieldValue('supplierId', '');
@@ -73,46 +77,17 @@ export function Dispatches() {
         form.setFieldValue('supplierId', supplierId);
         form.setFieldValue('items', []);
         setPoItems([]);
+        setLoadingItems(true);
 
         try {
-            // We need an endpoint to get Open PO Items for a supplier
-            // Existing `getOrders` is too broad.
-            // I'll filter client-side for now or use `getOrders({ status: 'ORDER_PLACED' })` filtering by supplier?
-            // `api.getOrdersPaginated` supports status.
-            // But we need ITEMS, not just orders.
-            // And we need validation against "Remaining Qty".
-            // Since backend "CreateDispatch" validates, frontend can filter best effort.
-
-            // Just fetch all orders for supplier that are NOT Closed/Delivered
-            // This might be heavy. Ideally backend provides `getOpenPoItems(supplierId)`.
-            // I'll add `getOpenPoItems` to API later if needed. For now:
-            const allOrders = await api.getOrders(); // Limitation: gets all orders?
-            // Filter locally
-            const openOrders = allOrders.filter((o: any) =>
-                Number(o.supplierId) === Number(supplierId) &&
-                ['ORDER_PLACED', 'PARTIALLY_DELIVERED', 'IN_PRODUCTION', 'READY_TO_SHIP'].includes(o.status)
-            );
-
-            // Extract items
-            const items: any[] = [];
-            openOrders.forEach((o: any) => {
-                o.items.forEach((i: any) => {
-                    // remaining = quantity - dispatchedQuantity
-                    const remaining = i.quantity - (i.dispatchedQuantity || 0);
-                    if (remaining > 0) {
-                        items.push({
-                            ...i,
-                            poNumber: o.poNumber,
-                            max: remaining,
-                            poItemId: i.id
-                        });
-                    }
-                });
-            });
-            setPoItems(items);
+            // Call the new backend endpoint that filters PO items by product's supplierId
+            const items = await api.getOpenPoItemsBySupplier(Number(supplierId));
+            setPoItems(items || []);
         } catch (err) {
             console.error(err);
             notifications.show({ title: 'Error', message: 'Failed to fetch PO items', color: 'red' });
+        } finally {
+            setLoadingItems(false);
         }
     };
 
@@ -134,7 +109,6 @@ export function Dispatches() {
         try {
             await api.createDispatch({
                 supplierId: Number(values.supplierId),
-                referenceNumber: values.referenceNumber,
                 remarks: values.remarks,
                 items: values.items.map(i => ({ poItemId: i.poItemId, quantity: i.quantity }))
             });
@@ -151,6 +125,19 @@ export function Dispatches() {
             });
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleDeleteDispatch = async (id: number) => {
+        if (!isAdmin) return;
+        if (window.confirm(`Delete dispatch #${id}? This action cannot be undone.`)) {
+            try {
+                await api.deleteDispatch(id);
+                refetch();
+                notifications.show({ title: 'Deleted', message: `Dispatch #${id} has been deleted.`, color: 'red' });
+            } catch (error: any) {
+                notifications.show({ title: 'Error', message: error.response?.data?.message || 'Delete failed', color: 'red' });
+            }
         }
     };
 
@@ -204,23 +191,36 @@ export function Dispatches() {
         }
     };
 
+    const getStatusColor = (status: string) => {
+        const colors: Record<string, string> = {
+            DELIVERED: 'green',
+            SHIPPED: 'blue',
+            IN_TRANSIT: 'cyan',
+            PACKED: 'violet',
+            RETURNED: 'orange',
+            CANCELLED: 'red',
+            DRAFT: 'gray'
+        };
+        return colors[status] || 'gray';
+    };
+
     // Rendering Rows
     const rows = dispatches.map((element: any) => (
         <Table.Tr key={element.id}>
-            <Table.Td>#{element.id}</Table.Td>
-            <Table.Td>{element.supplier?.companyName}</Table.Td>
-            <Table.Td>{[...new Set(element.items?.map((i: any) => i.poItem?.purchaseOrder?.poNumber))].join(', ')}</Table.Td>
-            <Table.Td>{element.referenceNumber || '-'}</Table.Td>
-            <Table.Td>{new Date(element.dispatchDate).toLocaleDateString()}</Table.Td>
             <Table.Td>
-                <Badge color={
-                    element.status === 'DELIVERED' ? 'green' :
-                        element.status === 'SHIPPED' ? 'blue' :
-                            element.status === 'IN_TRANSIT' ? 'cyan' :
-                                element.status === 'RETURNED' ? 'orange' :
-                                    element.status === 'CANCELLED' ? 'red' :
-                                        'gray'
-                }>{element.status}</Badge>
+                <Text size="sm" fw={600}>#{element.id}</Text>
+            </Table.Td>
+            <Table.Td>
+                <Text size="sm">{element.supplier?.companyName || '—'}</Text>
+            </Table.Td>
+            <Table.Td>
+                <Text size="sm" c="dimmed">{[...new Set(element.items?.map((i: any) => i.poItem?.purchaseOrder?.poNumber))].join(', ') || '—'}</Text>
+            </Table.Td>
+            <Table.Td>
+                <Text size="xs" c="dimmed">{new Date(element.createdAt).toLocaleDateString()}</Text>
+            </Table.Td>
+            <Table.Td>
+                <Badge color={getStatusColor(element.status)}>{element.status}</Badge>
             </Table.Td>
             <Table.Td>
                 <Group gap={0}>
@@ -242,6 +242,11 @@ export function Dispatches() {
                             </Menu.Dropdown>
                         </Menu>
                     )}
+                    {isAdmin && (
+                        <ActionIcon variant="subtle" color="red" ml={4} onClick={() => handleDeleteDispatch(element.id)}>
+                            <IconTrash size={16} />
+                        </ActionIcon>
+                    )}
                 </Group>
             </Table.Td>
         </Table.Tr>
@@ -252,13 +257,13 @@ export function Dispatches() {
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-end">
                     <Box>
-                        <Title order={1}>Dispatches</Title>
+                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Dispatches</Title>
                         <Text c="dimmed">Track incoming shipments and deliveries</Text>
                     </Box>
-                    <Button leftSection={<IconPlus size={18} />} onClick={open}>New Dispatch</Button>
+                    <Button leftSection={<IconPlus size={18} />} onClick={open} variant="gradient" gradient={{ from: 'teal', to: 'cyan' }}>New Dispatch</Button>
                 </Group>
 
-                <Paper p="md" withBorder>
+                <Paper p="md" withBorder shadow="sm">
                     <LoadingOverlay visible={loading} />
                     <SearchBar search={search} onSearchChange={setSearch} limit={limit} onLimitChange={setLimit} />
                     <Table.ScrollContainer minWidth={800}>
@@ -268,7 +273,6 @@ export function Dispatches() {
                                     <Table.Th>ID</Table.Th>
                                     <Table.Th>Supplier</Table.Th>
                                     <Table.Th>Related POs</Table.Th>
-                                    <Table.Th>Reference #</Table.Th>
                                     <Table.Th>Date</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th>Actions</Table.Th>
@@ -281,45 +285,68 @@ export function Dispatches() {
                 </Paper>
             </Stack>
 
-            {/* Create Modal */}
-            <Modal opened={opened} onClose={close} title="Create Dispatch" size="xl">
+            {/* Create Dispatch Modal */}
+            <Modal
+                opened={opened}
+                onClose={() => { close(); setActiveStep(0); form.reset(); }}
+                title={<Text fw={700} size="lg">Create New Dispatch</Text>}
+                size="xl"
+                radius="md"
+            >
                 <Stepper active={activeStep} onStepClick={setActiveStep}>
-                    <Stepper.Step label="Supplier" description="Select Supplier">
+                    {/* Step 1: Supplier Selection */}
+                    <Stepper.Step label="Supplier" description="Choose supplier">
                         <Stack mt="md">
                             <Select
                                 label="Supplier"
-                                placeholder="Choose supplier"
+                                placeholder="Choose a supplier"
                                 data={suppliers.map(s => ({ value: String(s.id), label: s.companyName }))}
+                                withAsterisk
                                 {...form.getInputProps('supplierId')}
                                 onChange={handleSupplierChange}
                             />
                             <TextInput
-                                label="Reference Number"
-                                placeholder="Invoice or DC Number"
-                                {...form.getInputProps('referenceNumber')}
-                            />
-                            <TextInput
                                 label="Remarks"
-                                placeholder="Optional remarks"
+                                placeholder="Optional remarks for this dispatch"
                                 {...form.getInputProps('remarks')}
                             />
                         </Stack>
                     </Stepper.Step>
 
+                    {/* Step 2: Item Selection — filtered by product's supplierId */}
                     <Stepper.Step label="Select Items" description="Add PO Items">
                         <Group align="flex-start" mt="md">
                             <Stack style={{ flex: 1 }}>
-                                <Text fw={500}>Available Items</Text>
+                                <Text fw={500}>
+                                    Available Items
+                                    <Text span size="xs" c="dimmed" ml={6}>
+                                        (Products supplied by {suppliers.find(s => String(s.id) === form.values.supplierId)?.companyName})
+                                    </Text>
+                                </Text>
                                 <Box style={{ maxHeight: 300, overflowY: 'auto' }}>
-                                    {poItems.length === 0 && <Text c="dimmed">No pending items found.</Text>}
+                                    {loadingItems && <Text c="dimmed" size="sm">Loading items...</Text>}
+                                    {!loadingItems && poItems.length === 0 && (
+                                        <Text c="dimmed" size="sm">No pending items found for this supplier.</Text>
+                                    )}
                                     {poItems.map(item => (
-                                        <Paper key={item.poItemId} withBorder p="xs" mb="xs" onClick={() => addToDispatch(item)} style={{ cursor: 'pointer', borderColor: form.values.items.find(i => i.poItemId === item.poItemId) ? 'blue' : undefined }}>
+                                        <Paper
+                                            key={item.poItemId}
+                                            withBorder
+                                            p="xs"
+                                            mb="xs"
+                                            onClick={() => addToDispatch(item)}
+                                            style={{
+                                                cursor: 'pointer',
+                                                borderColor: form.values.items.find(i => i.poItemId === item.poItemId) ? 'var(--mantine-color-blue-5)' : undefined,
+                                                background: form.values.items.find(i => i.poItemId === item.poItemId) ? 'var(--mantine-color-blue-light)' : undefined,
+                                            }}
+                                        >
                                             <Group justify="space-between">
                                                 <Box>
-                                                    <Text size="sm" fw={500}>{item.productName}</Text>
+                                                    <Text size="sm" fw={500}>{item.productName || item.product?.name}</Text>
                                                     <Text size="xs" c="dimmed">{item.poNumber}</Text>
                                                 </Box>
-                                                <Badge>{item.max}</Badge>
+                                                <Badge>Remaining: {item.max}</Badge>
                                             </Group>
                                         </Paper>
                                     ))}
@@ -328,12 +355,15 @@ export function Dispatches() {
 
                             <Stack style={{ flex: 1 }}>
                                 <Text fw={500}>Selected Items</Text>
+                                {form.values.items.length === 0 && (
+                                    <Text c="dimmed" size="sm">Click items on the left to add them.</Text>
+                                )}
                                 {form.values.items.map((item, index) => (
                                     <Paper key={index} withBorder p="xs">
                                         <Group justify="space-between">
                                             <Box>
                                                 <Text size="sm">{item.productName}</Text>
-                                                <Text size="xs">{item.poNumber}</Text>
+                                                <Text size="xs" c="dimmed">{item.poNumber}</Text>
                                             </Box>
                                             <Group gap="xs">
                                                 <NumberInput
@@ -343,7 +373,7 @@ export function Dispatches() {
                                                     {...form.getInputProps(`items.${index}.quantity`)}
                                                 />
                                                 <ActionIcon color="red" variant="subtle" onClick={() => form.removeListItem('items', index)}>
-                                                    <IconPlus style={{ transform: 'rotate(45deg)' }} />
+                                                    <IconX size={16} />
                                                 </ActionIcon>
                                             </Group>
                                         </Group>
@@ -354,18 +384,28 @@ export function Dispatches() {
                         </Group>
                     </Stepper.Step>
 
+                    {/* Step 3: Review & Submit */}
                     <Stepper.Step label="Review" description="Confirm Dispatch">
                         <Stack mt="md">
-                            <Text><strong>Supplier:</strong> {suppliers.find(s => String(s.id) === form.values.supplierId)?.companyName}</Text>
-                            <Text><strong>Reference:</strong> {form.values.referenceNumber}</Text>
-                            <Text><strong>Remarks:</strong> {form.values.remarks}</Text>
-                            <Text><strong>Items:</strong> {form.values.items.length}</Text>
-                            <Table>
-                                <Table.Thead><Table.Tr><Table.Th>Item</Table.Th><Table.Th>Qty</Table.Th></Table.Tr></Table.Thead>
+                            <Paper withBorder p="md" radius="md">
+                                <Text fw={700} mb="xs">Dispatch Summary</Text>
+                                <Text size="sm"><strong>Supplier:</strong> {suppliers.find(s => String(s.id) === form.values.supplierId)?.companyName}</Text>
+                                {form.values.remarks && <Text size="sm"><strong>Remarks:</strong> {form.values.remarks}</Text>}
+                                <Text size="sm" mt="xs"><strong>Total Items:</strong> {form.values.items.length}</Text>
+                            </Paper>
+                            <Table withTableBorder>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Product</Table.Th>
+                                        <Table.Th>PO #</Table.Th>
+                                        <Table.Th>Quantity</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
                                 <Table.Tbody>
                                     {form.values.items.map((i, idx) => (
                                         <Table.Tr key={idx}>
-                                            <Table.Td>{i.productName} ({i.poNumber})</Table.Td>
+                                            <Table.Td>{i.productName}</Table.Td>
+                                            <Table.Td>{i.poNumber}</Table.Td>
                                             <Table.Td>{i.quantity}</Table.Td>
                                         </Table.Tr>
                                     ))}
@@ -386,28 +426,34 @@ export function Dispatches() {
             </Modal>
 
             {/* View Dispatch Modal */}
-            <Modal opened={viewModalOpened} onClose={closeViewModal} title={`Dispatch #${viewDispatch?.id}`} size="lg">
+            <Modal opened={viewModalOpened} onClose={closeViewModal} title={<Text fw={700}>Dispatch #{viewDispatch?.id}</Text>} size="lg">
                 {viewDispatch && (
                     <Stack>
                         <Group justify="space-between">
                             <Box>
-                                <Text size="sm" c="dimmed">Reference</Text>
-                                <Text fw={500}>{viewDispatch.referenceNumber || '-'}</Text>
+                                <Text size="sm" c="dimmed">Supplier</Text>
+                                <Text fw={500}>{viewDispatch.supplier?.companyName || '—'}</Text>
                             </Box>
                             <Box>
                                 <Text size="sm" c="dimmed">Date</Text>
-                                <Text fw={500}>{new Date(viewDispatch.dispatchDate).toLocaleDateString()}</Text>
+                                <Text fw={500}>{new Date(viewDispatch.createdAt).toLocaleDateString()}</Text>
                             </Box>
-                            <Badge size="lg" color={
-                                viewDispatch.status === 'DELIVERED' ? 'green' :
-                                    viewDispatch.status === 'SHIPPED' ? 'blue' :
-                                        viewDispatch.status === 'CANCELLED' ? 'red' : 'gray'
-                            }>{viewDispatch.status}</Badge>
+                            <Badge size="lg" color={getStatusColor(viewDispatch.status)}>{viewDispatch.status}</Badge>
                         </Group>
+
+                        {viewDispatch.remarks && (
+                            <Text size="sm" c="dimmed"><strong>Remarks:</strong> {viewDispatch.remarks}</Text>
+                        )}
 
                         <Text fw={500} mt="md">Items</Text>
                         <Table withTableBorder>
-                            <Table.Thead><Table.Tr><Table.Th>Product</Table.Th><Table.Th>PO #</Table.Th><Table.Th>Qty</Table.Th></Table.Tr></Table.Thead>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Product</Table.Th>
+                                    <Table.Th>PO #</Table.Th>
+                                    <Table.Th>Qty</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
                             <Table.Tbody>
                                 {viewDispatch.items?.map((item: any) => (
                                     <Table.Tr key={item.id}>
@@ -422,7 +468,7 @@ export function Dispatches() {
                         <Text fw={500} mt="md">Timeline</Text>
                         <Stack gap="xs">
                             {viewDispatch.stageUpdates?.map((update: any) => (
-                                <Paper key={update.id} withBorder p="sm" >
+                                <Paper key={update.id} withBorder p="sm">
                                     <Group justify="space-between">
                                         <Text size="sm" fw={500}>{update.stage}</Text>
                                         <Text size="xs" c="dimmed">{new Date(update.timestamp).toLocaleString()}</Text>

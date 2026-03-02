@@ -24,6 +24,7 @@ import {
     IconShieldLock,
     IconSearch,
     IconDownload,
+    IconBuildingSkyscraper,
 } from '@tabler/icons-react';
 import { downloadCSV } from "../utils/export";
 import { api } from '../api/client';
@@ -31,6 +32,7 @@ import { notifications } from '@mantine/notifications';
 
 export default function UserManagement() {
     const [users, setUsers] = useState<any[]>([]);
+    const [divisions, setDivisions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [search, setSearch] = useState('');
@@ -41,6 +43,7 @@ export default function UserManagement() {
             username: '',
             password: '',
             role: 'OPERATIONS',
+            divisionId: '' as string, // optional - will be converted to number or null
         },
         validate: {
             username: (value) => (value.length >= 3 ? null : 'Username must be at least 3 characters'),
@@ -62,12 +65,20 @@ export default function UserManagement() {
 
     useEffect(() => {
         fetchUsers();
+        api.getDivisions()
+            .then(data => setDivisions((data || []).filter((d: any) => d.status === 'ACTIVE')))
+            .catch(console.error);
     }, []);
 
     const handleCreateUser = async (values: typeof form.values) => {
         setSubmitting(true);
         try {
-            await api.registerUser(values);
+            await api.registerUser({
+                username: values.username,
+                password: values.password,
+                role: values.role,
+                divisionId: values.divisionId ? Number(values.divisionId) : undefined,
+            });
             close();
             form.reset();
             fetchUsers();
@@ -77,9 +88,14 @@ export default function UserManagement() {
                 color: 'green'
             });
         } catch (error: any) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data ||
+                error.message ||
+                'Failed to create user';
             notifications.show({
-                title: 'Error',
-                message: error.response?.data?.message || 'Failed to create user',
+                title: 'Error Creating User',
+                message: typeof message === 'string' ? message : 'Failed to create user',
                 color: 'red'
             });
         } finally {
@@ -104,7 +120,7 @@ export default function UserManagement() {
                     message: error.response?.data?.message || 'Failed to delete user',
                     color: 'red'
                 });
-                setLoading(false); // Only needed if fetchUsers fails or isn't called
+                setLoading(false);
             }
         }
     };
@@ -116,7 +132,6 @@ export default function UserManagement() {
     const roleColors: Record<string, string> = {
         ADMIN: 'red',
         SALES_MANAGER: 'blue',
-        // FINANCE: 'teal',
         OPERATIONS: 'gray'
     };
 
@@ -125,6 +140,7 @@ export default function UserManagement() {
             id: u.id,
             username: u.username,
             role: u.role,
+            division: u.division?.name || '-',
             createdAt: u.createdAt,
         }));
         downloadCSV(dataToExport, "users");
@@ -158,6 +174,15 @@ export default function UserManagement() {
                 <Badge color={roleColors[user.role]} variant="light" radius="sm">
                     {user.role}
                 </Badge>
+            </Table.Td>
+            <Table.Td>
+                {user.divisionId ? (
+                    <Badge variant="dot" color="violet">
+                        {user.division?.name || `Division #${user.divisionId}`}
+                    </Badge>
+                ) : (
+                    <Text size="xs" c="dimmed">All Divisions</Text>
+                )}
             </Table.Td>
             <Table.Td>
                 <Text size="xs" c="dimmed">
@@ -222,13 +247,14 @@ export default function UserManagement() {
                                 <Table.Th>ID</Table.Th>
                                 <Table.Th>User Details</Table.Th>
                                 <Table.Th>Role</Table.Th>
+                                <Table.Th>Division</Table.Th>
                                 <Table.Th>Created Date</Table.Th>
                                 <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
                             {rows.length > 0 ? rows : (
-                                <Table.Tr><Table.Td colSpan={5} ta="center">No users found</Table.Td></Table.Tr>
+                                <Table.Tr><Table.Td colSpan={6} ta="center">No users found</Table.Td></Table.Tr>
                             )}
                         </Table.Tbody>
                     </Table>
@@ -264,14 +290,20 @@ export default function UserManagement() {
                             placeholder="Select user role"
                             data={[
                                 { value: 'ADMIN', label: 'Administrator' },
-                                // { value: 'PURCHASE_MANAGER', label: 'Purchase Manager' },
-                                // { value: 'FINANCE', label: 'Finance Officer' },
                                 { value: 'OPERATIONS', label: 'Operations' },
                                 { value: 'SALES_MANAGER', label: 'Sales Manager' },
-
                             ]}
                             required
                             {...form.getInputProps('role')}
+                        />
+                        <Select
+                            label="Division (Optional)"
+                            placeholder="No division restriction — sees all"
+                            description="If set, this user will only see orders and dispatches for this division."
+                            leftSection={<IconBuildingSkyscraper size={16} />}
+                            clearable
+                            data={divisions.map(d => ({ value: d.id + "", label: d.name }))}
+                            {...form.getInputProps('divisionId')}
                         />
                         <Button
                             type="submit"

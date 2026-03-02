@@ -11,8 +11,10 @@ import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 
 export function Products() {
     const isMobile = useMediaQuery('(max-width: 768px)');
-    const { isAdmin } = useAuth();
+    const { isAdmin, isOperations } = useAuth();
+    const canManageProducts = isAdmin || isOperations; // Both can add/edit products
     const [categories, setCategories] = useState<any[]>([]);
+    const [suppliers, setSuppliers] = useState<any[]>([]);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -26,10 +28,13 @@ export function Products() {
     const [submitting, setSubmitting] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    // Load categories for the form dropdown
+    // Load categories and suppliers for the form dropdowns
     useEffect(() => {
         api.getProductCategories()
             .then(data => setCategories(data.filter((c: any) => c.status === 'ACTIVE')))
+            .catch(console.error);
+        api.getSuppliers()
+            .then(data => setSuppliers((data || []).filter((s: any) => s.status === 'ACTIVE')))
             .catch(console.error);
     }, []);
 
@@ -37,6 +42,7 @@ export function Products() {
         initialValues: {
             name: "",
             categoryId: "",
+            supplierId: "",
             description: "",
             minDeliveryDays: 0,
             status: "ACTIVE",
@@ -44,6 +50,7 @@ export function Products() {
         validate: {
             name: (value) => (value.length < 2 ? 'Name must have at least 2 letters' : null),
             categoryId: (value) => (!value ? 'Category is required' : null),
+            supplierId: (value) => (!value ? 'Supplier is required' : null),
             minDeliveryDays: (value) => (value < 0 ? 'Cannot be negative' : null),
         },
     });
@@ -51,10 +58,15 @@ export function Products() {
     const handleSubmit = async (values: typeof form.values) => {
         setSubmitting(true);
         try {
+            const payload = {
+                ...values,
+                supplierId: Number(values.supplierId),
+                categoryId: Number(values.categoryId),
+            };
             if (editingId) {
-                await api.updateProduct(editingId, values);
+                await api.updateProduct(editingId, payload);
             } else {
-                await api.createProduct(values);
+                await api.createProduct(payload);
             }
             close();
             form.reset();
@@ -68,11 +80,12 @@ export function Products() {
     };
 
     const handleEdit = (product: any) => {
-        if (!isAdmin) return;
+        if (!canManageProducts) return;
         setEditingId(product.id);
         form.setValues({
             name: product.name,
             categoryId: product.categoryId.toString(),
+            supplierId: product.supplierId?.toString() || "",
             description: product.description || "",
             minDeliveryDays: product.minDeliveryDays || 0,
             status: product.status || "ACTIVE",
@@ -96,7 +109,7 @@ export function Products() {
     };
 
     const handleAdd = () => {
-        if (!isAdmin) return;
+        if (!canManageProducts) return;
         setEditingId(null);
         form.reset();
         form.setFieldValue('status', 'ACTIVE');
@@ -108,7 +121,9 @@ export function Products() {
             id: p.id,
             name: p.name,
             category: p.category?.name,
+            supplier: p.supplier?.companyName,
             categoryId: p.categoryId,
+            supplierId: p.supplierId,
             description: p.description,
             minDeliveryDays: p.minDeliveryDays,
             status: p.status,
@@ -132,6 +147,9 @@ export function Products() {
                 <Badge variant="dot" color="blue">{element.category?.name || 'Uncategorized'}</Badge>
             </Table.Td>
             <Table.Td>
+                <Text size="sm">{element.supplier?.companyName || <Text span c="dimmed">—</Text>}</Text>
+            </Table.Td>
+            <Table.Td>
                 <Group gap="xs">
                     <IconClock size={14} color="gray" />
                     <Text size="sm">{element.minDeliveryDays} Days</Text>
@@ -147,15 +165,15 @@ export function Products() {
             </Table.Td>
             <Table.Td>
                 <Group gap="xs" justify="flex-end">
+                    {canManageProducts && (
+                        <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(element)}>
+                            <IconPencil size={18} />
+                        </ActionIcon>
+                    )}
                     {isAdmin && (
-                        <>
-                            <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(element)}>
-                                <IconPencil size={18} />
-                            </ActionIcon>
-                            <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
-                                <IconTrash size={18} />
-                            </ActionIcon>
-                        </>
+                        <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
+                            <IconTrash size={18} />
+                        </ActionIcon>
                     )}
                 </Group>
             </Table.Td>
@@ -171,17 +189,19 @@ export function Products() {
                         <Text c="dimmed" size="sm">Manage your product catalog and items</Text>
                     </Box>
                     <Group>
-                        <Button
-                            leftSection={<IconPlus size={18} />}
-                            onClick={handleAdd}
-                            size="md"
-                            radius="md"
-                            variant="gradient"
-                            gradient={{ from: 'blue', to: 'cyan' }}
-                            w={isMobile ? '100%' : 'auto'}
-                        >
-                            Add New Product
-                        </Button>
+                        {canManageProducts && (
+                            <Button
+                                leftSection={<IconPlus size={18} />}
+                                onClick={handleAdd}
+                                size="md"
+                                radius="md"
+                                variant="gradient"
+                                gradient={{ from: 'blue', to: 'cyan' }}
+                                w={isMobile ? '100%' : 'auto'}
+                            >
+                                Add New Product
+                            </Button>
+                        )}
                         <Button
                             leftSection={<IconDownload size={18} />}
                             onClick={handleExport}
@@ -205,13 +225,14 @@ export function Products() {
                         onLimitChange={setLimit}
                     />
 
-                    <Table.ScrollContainer minWidth={800}>
+                    <Table.ScrollContainer minWidth={900}>
                         <Table verticalSpacing="md" highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th w={80}>ID</Table.Th>
                                     <Table.Th>Product Details</Table.Th>
                                     <Table.Th>Category</Table.Th>
+                                    <Table.Th>Supplier</Table.Th>
                                     <Table.Th>Min. Delivery</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
@@ -220,7 +241,7 @@ export function Products() {
                             <Table.Tbody>
                                 {rows.length > 0 ? rows : (
                                     <Table.Tr>
-                                        <Table.Td colSpan={5}>
+                                        <Table.Td colSpan={7}>
                                             <Text ta="center" py="xl" c="dimmed">No products found</Text>
                                         </Table.Td>
                                     </Table.Tr>
@@ -273,6 +294,16 @@ export function Products() {
                             withAsterisk
                             radius="md"
                             {...form.getInputProps("categoryId")}
+                        />
+
+                        <Select
+                            label="Supplier"
+                            placeholder="Select supplier for this product"
+                            data={suppliers.map(s => ({ value: s.id + "", label: s.companyName }))}
+                            withAsterisk
+                            radius="md"
+                            description="The supplier this product is sourced from. Used for dispatch management."
+                            {...form.getInputProps("supplierId")}
                         />
 
                         <NumberInput

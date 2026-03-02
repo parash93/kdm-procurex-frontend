@@ -5,10 +5,12 @@ import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 import { usePaginatedData } from "../hooks/usePaginatedData";
 import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 
 export function Suppliers() {
+    const { isAdmin } = useAuth();
     const isMobile = useMediaQuery('(max-width: 768px)');
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -71,6 +73,7 @@ export function Suppliers() {
     };
 
     const handleDelete = async (id: string) => {
+        if (!isAdmin) return;
         if (window.confirm("Are you sure you want to delete this supplier?")) {
             setDeleting(true);
             try {
@@ -128,9 +131,11 @@ export function Suppliers() {
                     <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(element)}>
                         <IconPencil size={18} />
                     </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
-                        <IconTrash size={18} />
-                    </ActionIcon>
+                    {isAdmin && (
+                        <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
+                            <IconTrash size={18} />
+                        </ActionIcon>
+                    )}
                 </Group>
             </Table.Td>
         </Table.Tr>

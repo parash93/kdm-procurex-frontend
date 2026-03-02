@@ -196,8 +196,16 @@ export const api = {
         const response = await apiClient.get(`/dispatches/${id}`);
         return response.data;
     },
+    getOpenPoItemsBySupplier: async (supplierId: number) => {
+        const response = await apiClient.get(`/dispatches/open-items/${supplierId}`);
+        return response.data;
+    },
     updateDispatchStatus: async (id: number, status: string, notes?: string) => {
         const response = await apiClient.put(`/dispatches/${id}/status`, { status, notes });
+        return response.data;
+    },
+    deleteDispatch: async (id: number) => {
+        const response = await apiClient.delete(`/dispatches/${id}`);
         return response.data;
     },
 

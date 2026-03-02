@@ -5,10 +5,12 @@ import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 import { usePaginatedData } from "../hooks/usePaginatedData";
 import { SearchBar, PaginationFooter } from "../components/PaginationControls";
 
 export function Divisions() {
+    const { isAdmin } = useAuth();
     const isMobile = useMediaQuery('(max-width: 768px)');
     const [opened, { open, close }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export function Divisions() {
     };
 
     const handleDelete = async (id: number) => {
+        if (!isAdmin) return;
         if (window.confirm("Are you sure you want to delete this division?")) {
             setDeleting(true);
             try {
@@ -117,9 +120,11 @@ export function Divisions() {
                     <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(element)}>
                         <IconPencil size={18} />
                     </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
-                        <IconTrash size={18} />
-                    </ActionIcon>
+                    {isAdmin && (
+                        <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(element.id)}>
+                            <IconTrash size={18} />
+                        </ActionIcon>
+                    )}
                 </Group>
             </Table.Td>
         </Table.Tr>

@@ -52,8 +52,8 @@ const PAGE_SIZE_OPTIONS = [
 
 export function Orders() {
     const isMobile = useMediaQuery('(max-width: 768px)');
-    const { user, isAdmin } = useAuth();
-    const [suppliers, setSuppliers] = useState<any[]>([]);
+    const { user, isAdmin, isOperations } = useAuth();
+    const canSeeSupplier = isAdmin || isOperations; // Sales users cannot see supplier info
     const [divisions, setDivisions] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
@@ -109,7 +109,6 @@ export function Orders() {
     // PO Creation Form
     const poForm = useForm({
         initialValues: {
-            supplierId: "",
             divisionId: "",
             remarks: "",
             poDate: new Date().toISOString().split('T')[0],
@@ -118,7 +117,6 @@ export function Orders() {
             ]
         },
         validate: {
-            supplierId: (value) => (!value ? 'Supplier is required' : null),
             items: {
                 quantity: (value: number) => (value <= 0 ? 'Quantity must be > 0' : null),
             }
@@ -173,13 +171,11 @@ export function Orders() {
 
         const fetchDropdownData = async () => {
             try {
-                const [suppliersData, divisionsData, productsData] = await Promise.all([
-                    api.getSuppliers(),
+                const [divisionsData, productsData] = await Promise.all([
                     api.getDivisions(),
                     api.getProducts()
                 ]);
                 if (!controller.signal.aborted) {
-                    setSuppliers((suppliersData || []).filter((s: any) => s.status === 'ACTIVE'));
                     setDivisions((divisionsData || []).filter((d: any) => d.status === 'ACTIVE'));
                     setProducts((productsData || []).filter((p: any) => p.status === 'ACTIVE'));
                 }
@@ -323,6 +319,10 @@ export function Orders() {
     const handleOpen = () => {
         setIsEditing(false);
         poForm.reset();
+        // Pre-fill division from logged-in user
+        if (user?.divisionId) {
+            poForm.setFieldValue('divisionId', user.divisionId.toString());
+        }
         open();
     };
 
@@ -330,11 +330,10 @@ export function Orders() {
         setIsEditing(true);
         setSelectedOrder(order);
         poForm.setValues({
-            supplierId: order.supplierId.toString(),
-            divisionId: order.divisionId.toString() || "",
+            divisionId: order.divisionId?.toString() || "",
             remarks: order.remarks || "",
             items: order.items.map((item: any) => ({
-                productId: item.productId.toString() || "",
+                productId: item.productId?.toString() || "",
                 productName: item.productName || "",
                 sku: item.sku || "",
                 quantity: item.quantity,
@@ -414,6 +413,19 @@ export function Orders() {
         downloadCSV(dataToExport, "purchase-orders");
     };
 
+    const handleDeleteOrder = async (id: number, poNumber: string) => {
+        if (!isAdmin) return;
+        if (window.confirm(`Delete PO ${poNumber}? This will set it to DELETED status.`)) {
+            try {
+                await api.deleteOrder(id);
+                refetchOrders();
+                notifications.show({ title: 'Deleted', message: `${poNumber} has been deleted.`, color: 'red' });
+            } catch (error: any) {
+                notifications.show({ title: 'Error', message: error.response?.data?.message || 'Delete failed', color: 'red' });
+            }
+        }
+    };
+
     const rows = orders.map((element: any) => (
         <Table.Tr key={element.id}>
             <Table.Td>
@@ -425,29 +437,25 @@ export function Orders() {
             </Table.Td>
             <Table.Td>
                 <Group gap="xs">
-                    <IconUser size={14} />
-                    <Text size="sm">{element.supplier?.companyName}</Text>
-                </Group>
-            </Table.Td>
-            <Table.Td>
-                <Group gap="xs">
                     <IconBuildingSkyscraper size={14} />
                     <Text size="sm">{element.division?.name || '-'}</Text>
                 </Group>
             </Table.Td>
-            {/* <Table.Td>
-                <Text fw={600}>INR {element.items.reduce((sum: number, item: any) => sum + Number(item.totalPrice), 0).toLocaleString()}</Text>
-            </Table.Td> */}
             <Table.Td>
                 <Badge variant="light" color={statusColors[element.status] || 'blue'}>
                     {element.status.replace(/_/g, ' ')}
                 </Badge>
             </Table.Td>
             <Table.Td>
-                <Group justify="flex-end">
+                <Group justify="flex-end" gap="xs">
                     <ActionIcon variant="subtle" color="blue" onClick={() => handleViewDetails(element)}>
                         <IconExternalLink size={18} />
                     </ActionIcon>
+                    {isAdmin && (
+                        <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteOrder(element.id, element.poNumber)}>
+                            <IconTrash size={16} />
+                        </ActionIcon>
+                    )}
                 </Group>
             </Table.Td>
         </Table.Tr>
@@ -514,9 +522,7 @@ export function Orders() {
                                 <Table.Tr>
                                     <Table.Th w={60}>ID</Table.Th>
                                     <Table.Th>PO Details</Table.Th>
-                                    <Table.Th>Supplier</Table.Th>
                                     <Table.Th>Division</Table.Th>
-                                    {/* <Table.Th>Total Amount</Table.Th> */}
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                                 </Table.Tr>
@@ -562,25 +568,26 @@ export function Orders() {
                     <Stack gap="xl">
                         <Grid>
                             <Grid.Col span={{ base: 12, md: 6 }}>
-                                <Select
-                                    label="Supplier"
-                                    placeholder="Select supplier"
-                                    data={suppliers.map(s => ({ value: s.id + "", label: s.companyName }))}
-                                    withAsterisk
-                                    radius="md"
-                                    leftSection={<IconUser size={16} />}
-                                    {...poForm.getInputProps('supplierId')}
-                                />
-                            </Grid.Col>
-                            <Grid.Col span={{ base: 12, md: 6 }}>
-                                <Select
-                                    label="Division"
-                                    placeholder="Select division"
-                                    data={divisions.map(d => ({ value: d.id + "", label: d.name }))}
-                                    radius="md"
-                                    leftSection={<IconBuildingSkyscraper size={16} />}
-                                    {...poForm.getInputProps('divisionId')}
-                                />
+                                {/* Division: prefilled if user has division, otherwise selectable */}
+                                {user?.divisionId ? (
+                                    <TextInput
+                                        label="Division"
+                                        value={divisions.find(d => d.id === user.divisionId)?.name || `Division #${user.divisionId}`}
+                                        readOnly
+                                        disabled
+                                        leftSection={<IconBuildingSkyscraper size={16} />}
+                                        description=""
+                                    />
+                                ) : (
+                                    <Select
+                                        label="Division"
+                                        placeholder="Select division"
+                                        data={divisions.map(d => ({ value: d.id + "", label: d.name }))}
+                                        radius="md"
+                                        leftSection={<IconBuildingSkyscraper size={16} />}
+                                        {...poForm.getInputProps('divisionId')}
+                                    />
+                                )}
                             </Grid.Col>
                             <Grid.Col span={{ base: 12, md: 6 }}>
                                 <TextInput
@@ -714,12 +721,12 @@ export function Orders() {
                     <Stack gap="xl">
                         <Grid mt="md">
                             <Grid.Col span={4}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Supplier</Text>
-                                <Text fw={700} size="lg">{selectedOrder.supplier?.companyName}</Text>
-                            </Grid.Col>
-                            <Grid.Col span={4}>
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>PO Date</Text>
                                 <Text fw={600} size="lg">{new Date(selectedOrder.poDate).toLocaleString()}</Text>
+                            </Grid.Col>
+                            <Grid.Col span={4}>
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Division</Text>
+                                <Text fw={600} size="lg">{selectedOrder.division?.name || '—'}</Text>
                             </Grid.Col>
                             <Grid.Col span={4}>
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Status</Text>
@@ -738,11 +745,10 @@ export function Orders() {
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Product</Table.Th>
+                                    {canSeeSupplier && <Table.Th>Supplier</Table.Th>}
                                     <Table.Th>Expected Delivery</Table.Th>
-                                    {/* {isAdmin && <Table.Th ta="center">In Stock</Table.Th>} */}
                                     <Table.Th ta="center">PO Qty</Table.Th>
                                     <Table.Th ta="center">Dispatched</Table.Th>
-                                    {/* <Table.Th ta="right">Total</Table.Th> */}
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -754,31 +760,23 @@ export function Orders() {
                                                 <Text size="sm" fw={600}>{item.product?.name || item.productName}</Text>
                                                 {item.remarks && <Text size="xs" c="dimmed">{item.remarks}</Text>}
                                             </Table.Td>
+                                            {canSeeSupplier && (
+                                                <Table.Td>
+                                                    <Text size="sm">{item.product?.supplier?.companyName || '—'}</Text>
+                                                </Table.Td>
+                                            )}
                                             <Table.Td>
                                                 <Group gap={4}>
                                                     <IconClock size={12} color="gray" />
                                                     <Text size="xs">{item.expectedDeliveryDate ? new Date(item.expectedDeliveryDate).toLocaleDateString() : 'N/A'}</Text>
                                                 </Group>
                                             </Table.Td>
-                                            {/* {isAdmin && (
-                                                <Table.Td ta="center">
-                                                    <Badge
-                                                        variant="filled"
-                                                        color={isLowStock ? 'red' : 'green'}
-                                                        size="sm"
-                                                    >
-                                                        {item.availableStock || 0}
-                                                    </Badge>
-                                                </Table.Td>
-                                            )} */}
                                             <Table.Td ta="center">
                                                 <Text fw={700} c={isLowStock ? 'inherit' : 'inherit'}>{item.quantity}</Text>
                                             </Table.Td>
                                             <Table.Td ta="center">
                                                 <Text c={item.dispatchedQuantity >= item.quantity ? "green" : "dimmed"}>{item.dispatchedQuantity || 0}</Text>
                                             </Table.Td>
-                                            {/* <Table.Td ta="right">{Number(item.unitPrice).toLocaleString()}</Table.Td> */}
-                                            {/* <Table.Td ta="right" fw={900} c="blue">INR {Number(item.totalPrice).toLocaleString()}</Table.Td> */}
                                         </Table.Tr>
                                     );
                                 })}

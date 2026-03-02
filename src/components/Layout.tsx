@@ -1,16 +1,19 @@
-import { AppShell, Burger, Group, NavLink, Text, Stack, ActionIcon, Avatar, Menu, Box, Divider, Badge } from "@mantine/core";
+import { AppShell, Burger, Group, NavLink, Text, Stack, ActionIcon, Avatar, Menu, Box, Divider, Badge, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconUsers, IconLogout, IconChevronRight } from "@tabler/icons-react";
+import { IconUsers, IconLogout, IconChevronRight, IconSun, IconMoon } from "@tabler/icons-react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { getNavItemsForRole } from "../config/navigation";
 
 export function Layout() {
     const [opened, { toggle }] = useDisclosure();
     const { user, logout } = useAuth();
+    const { colorScheme, toggleColorScheme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
 
+    const isDark = colorScheme === 'dark';
     const visibleLinks = getNavItemsForRole(user?.role);
 
     const items = visibleLinks.map((link) => (
@@ -27,7 +30,6 @@ export function Layout() {
             }}
         />
     ));
-
 
     return (
         <AppShell
@@ -60,6 +62,21 @@ export function Layout() {
                             <Text size="sm" fw={600}>{user?.username}</Text>
                             <Badge size="xs" variant="light">{user?.role}</Badge>
                         </Box>
+
+                        {/* Theme Toggle */}
+                        <Tooltip label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'} withArrow>
+                            <ActionIcon
+                                variant="light"
+                                size="lg"
+                                radius="md"
+                                onClick={toggleColorScheme}
+                                color={isDark ? 'yellow' : 'blue'}
+                                aria-label="Toggle theme"
+                            >
+                                {isDark ? <IconSun size={18} /> : <IconMoon size={18} />}
+                            </ActionIcon>
+                        </Tooltip>
+
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>
                                 <ActionIcon variant="light" size="lg" radius="md">

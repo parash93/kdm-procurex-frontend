@@ -1,7 +1,7 @@
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider, createTheme } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -18,8 +18,76 @@ import { AuditLogs } from "./pages/AuditLogs";
 
 import { Dispatches } from "./pages/Dispatches";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
 import { navItems, hasAccess, type AppRole } from "./config/navigation";
+
+/* ================================
+   CUSTOM MANTINE THEME
+================================ */
+
+const theme = createTheme({
+  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  fontFamilyMonospace: "'JetBrains Mono', 'Fira Code', monospace",
+  headings: {
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: '800',
+  },
+  primaryColor: 'blue',
+  defaultRadius: 'md',
+  colors: {
+    // Richer blues for the light theme
+    blue: [
+      '#eff6ff', // 0 - lightest
+      '#dbeafe', // 1
+      '#bfdbfe', // 2
+      '#93c5fd', // 3
+      '#60a5fa', // 4
+      '#3b82f6', // 5
+      '#2563eb', // 6 - primary
+      '#1d4ed8', // 7
+      '#1e40af', // 8
+      '#1e3a8a', // 9 - darkest
+    ],
+  },
+  components: {
+    Button: {
+      defaultProps: {
+        radius: 'md',
+      },
+    },
+    Paper: {
+      defaultProps: {
+        radius: 'md',
+      },
+    },
+    TextInput: {
+      defaultProps: {
+        radius: 'md',
+      },
+    },
+    Select: {
+      defaultProps: {
+        radius: 'md',
+      },
+    },
+    NumberInput: {
+      defaultProps: {
+        radius: 'md',
+      },
+    },
+    Modal: {
+      defaultProps: {
+        radius: 'lg',
+      },
+    },
+    Badge: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+  },
+});
 
 /* ================================
    PROTECTED ROUTE COMPONENT
@@ -34,12 +102,10 @@ const ProtectedRoute = ({
 }) => {
   const { isAuthenticated, user } = useAuth();
 
-  // Not logged in
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Role restriction
   if (allowedRoles && !hasAccess(user?.role, allowedRoles)) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -64,17 +130,18 @@ const routeComponents: Record<string, React.ReactNode> = {
 };
 
 /* ================================
-   APP COMPONENT
+   INNER APP (reads theme from context)
 ================================ */
 
-export default function App() {
+function AppWithTheme() {
+  const { colorScheme } = useTheme();
+
   return (
-    <MantineProvider defaultColorScheme="dark">
-      <Notifications />
+    <MantineProvider theme={theme} defaultColorScheme={colorScheme} forceColorScheme={colorScheme}>
+      <Notifications position="top-right" />
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-
             {/* Public Route */}
             <Route path="/login" element={<Login />} />
 
@@ -102,21 +169,22 @@ export default function App() {
                   }
                 />
               ))}
-
-              {/* Inventory (Authenticated Only, No Role Restriction) */}
-              {/* <Route
-                path="inventory"
-                element={
-                  <ProtectedRoute>
-                    <Inventory />
-                  </ProtectedRoute>
-                }
-              /> */}
             </Route>
-
           </Routes>
         </BrowserRouter>
       </AuthProvider>
     </MantineProvider>
+  );
+}
+
+/* ================================
+   ROOT APP COMPONENT
+================================ */
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppWithTheme />
+    </ThemeProvider>
   );
 }

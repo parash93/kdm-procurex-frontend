@@ -304,11 +304,14 @@ export function Orders() {
                 ...values
             });
 
-            closeApproval();
-            await handleViewDetails(selectedOrder);
-            refetchOrders();
-            close();
-            notifications.show({ title: "Success", message: `PO level ${values.level} ${values.decision.toLowerCase()}`, color: "green" });
+            closeApproval();   // close approval sub-modal
+            closeDetails();    // close PO details modal — prevents accidental re-click
+            refetchOrders();   // refresh the list so new status is visible
+            notifications.show({
+                title: `Level ${values.level} ${values.decision === 'APPROVED' ? 'Approved ✓' : 'Rejected'}`,
+                message: `PO ${selectedOrder.poNumber} has been ${values.decision.toLowerCase()} at Level ${values.level}.`,
+                color: values.decision === 'APPROVED' ? 'green' : 'orange'
+            });
         } catch (error) {
             notifications.show({ title: "Error", message: error instanceof Error ? error.message : "Approval failed", color: "red" });
         } finally {

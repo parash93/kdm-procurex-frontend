@@ -17,6 +17,7 @@ import UserManagement from "./pages/UserManagement";
 import { AuditLogs } from "./pages/AuditLogs";
 
 import { Dispatches } from "./pages/Dispatches";
+import { Reports } from "./pages/Reports";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
@@ -125,6 +126,7 @@ const routeComponents: Record<string, React.ReactNode> = {
   "/products": <Products />,
   "/orders": <Orders />,
   "/dispatches": <Dispatches />,
+  "/reports": <Reports />,
   "/users": <UserManagement />,
   "/audit-logs": <AuditLogs />,
 };

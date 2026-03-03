@@ -210,16 +210,24 @@ export const api = {
     },
 
     // Dashboard
-    getDashboardStats: async () => {
-        const response = await apiClient.get("/dashboard/stats");
+    getDashboardStats: async (divisionId?: number) => {
+        const response = await apiClient.get("/dashboard/stats", { params: { divisionId } });
         return response.data;
     },
-    getDelayedOrders: async () => {
-        const response = await apiClient.get("/dashboard/delayed");
+    getDelayedOrders: async (divisionId?: number, page: number = 1, limit: number = 10) => {
+        const response = await apiClient.get("/dashboard/delayed", { params: { divisionId, page, limit } });
         return response.data;
     },
-    getOrdersByDivision: async () => {
-        const response = await apiClient.get("/dashboard/by-division");
+    getOrdersByDivision: async (divisionId?: number) => {
+        const response = await apiClient.get("/dashboard/by-division", { params: { divisionId } });
+        return response.data;
+    },
+    getOrdersReport: async (params: { status?: string; divisionId?: number; supplierId?: number; from?: string; to?: string }) => {
+        const response = await apiClient.get("/dashboard/reports/orders", { params });
+        return response.data;
+    },
+    getDispatchesReport: async (params: { status?: string; supplierId?: number; from?: string; to?: string }) => {
+        const response = await apiClient.get("/dashboard/reports/dispatches", { params });
         return response.data;
     },
 

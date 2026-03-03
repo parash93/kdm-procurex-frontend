@@ -7,6 +7,7 @@ import {
     IconPackage,
     IconUsers,
     IconHistory,
+    IconFileSpreadsheet,
 } from "@tabler/icons-react";
 import type { Icon } from "@tabler/icons-react";
 
@@ -43,6 +44,7 @@ export const navItems: NavItem[] = [
     { icon: IconPackage, label: "Products", to: "/products", roles: ["ADMIN", "OPERATIONS"] },
     { icon: IconShoppingCart, label: "Orders", to: "/orders", roles: ["ADMIN", "OPERATIONS", "SALES_MANAGER"] },
     { icon: IconTruck, label: "Dispatches", to: "/dispatches", roles: ["ADMIN", "OPERATIONS"] },
+    { icon: IconFileSpreadsheet, label: "Reports", to: "/reports", roles: ["ADMIN"] },
     { icon: IconUsers, label: "Users", to: "/users", roles: ["ADMIN"] },
     { icon: IconHistory, label: "Audit Logs", to: "/audit-logs", roles: ["ADMIN"] },
 ];

@@ -383,18 +383,14 @@ export function Orders() {
     const statusColors: Record<string, string> = {
         DRAFT: 'gray',
         PENDING_L1: 'yellow',
-        APPROVED_L1: 'blue',
+        APPROVED_L1: 'cyan',
         REJECTED_L1: 'red',
-        ORDER_PLACED: 'green',
-        IN_PRODUCTION: 'orange',
-        QUALITY_INSPECTION: 'pink',
-        READY_TO_SHIP: 'cyan',
-        SHIPPED: 'indigo',
-        IN_TRANSIT: 'violet',
-        PORT_CLEARANCE: 'lime',
-        DELIVERED: 'teal',
-        RETURNED: 'grape',
-        CLOSED: 'dark'
+        ORDER_PLACED: 'blue',
+        PARTIALLY_DELIVERED: 'orange',
+        FULLY_DELIVERED: 'green',
+        CLOSED: 'dark',
+        CANCELLED: 'pink',
+        DELETED: 'gray',
     };
 
     const from = orders.length > 0 ? (page - 1) * limit + 1 : 0;
@@ -756,7 +752,15 @@ export function Orders() {
                             </Table.Thead>
                             <Table.Tbody>
                                 {selectedOrder.items.map((item: any) => {
-                                    const isLowStock = isAdmin && (item.availableStock < item.quantity);
+                                    // Count only dispatches at SHIPPED or above
+                                    const ACTIVE_STATUSES = new Set(['SHIPPED', 'IN_TRANSIT', 'DELIVERED']);
+                                    const shippedQty = relatedDispatches
+                                        .filter((d: any) => ACTIVE_STATUSES.has(d.status))
+                                        .flatMap((d: any) => d.items || [])
+                                        .filter((di: any) => di.poItemId === item.id)
+                                        .reduce((sum: number, di: any) => sum + (di.quantity || 0), 0);
+
+                                    const isFullyShipped = shippedQty >= item.quantity;
                                     return (
                                         <Table.Tr key={item.id}>
                                             <Table.Td>
@@ -775,10 +779,17 @@ export function Orders() {
                                                 </Group>
                                             </Table.Td>
                                             <Table.Td ta="center">
-                                                <Text fw={700} c={isLowStock ? 'inherit' : 'inherit'}>{item.quantity}</Text>
+                                                <Text fw={700}>{item.quantity}</Text>
                                             </Table.Td>
                                             <Table.Td ta="center">
-                                                <Text c={item.dispatchedQuantity >= item.quantity ? "green" : "dimmed"}>{item.dispatchedQuantity || 0}</Text>
+                                                {shippedQty > 0 ? (
+                                                    <Text fw={600} c={isFullyShipped ? 'green' : 'orange'}>
+                                                        {shippedQty}
+                                                        {isFullyShipped && ' ✓'}
+                                                    </Text>
+                                                ) : (
+                                                    <Text size="xs" c="dimmed">—</Text>
+                                                )}
                                             </Table.Td>
                                         </Table.Tr>
                                     );
@@ -882,36 +893,62 @@ export function Orders() {
                         {relatedDispatches.length > 0 && (
                             <Stack gap="md">
                                 <Divider label={<Group gap={4}><IconPackage size={14} />Dispatch History</Group>} labelPosition="center" />
-                                <Table verticalSpacing="xs">
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Ref #</Table.Th>
-                                            <Table.Th>Status</Table.Th>
-                                            <Table.Th>Date</Table.Th>
-                                            <Table.Th>Items</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        {relatedDispatches.map((d: any) => (
-                                            <Table.Tr key={d.id}>
-                                                <Table.Td>
-                                                    <Text size="sm" fw={600}>{d.referenceNumber || `#${d.id}`}</Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Badge size="xs" variant="light" color={statusColors[d.status] || 'blue'}>
-                                                        {d.status}
-                                                    </Badge>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="xs">{new Date(d.createdAt).toLocaleDateString()}</Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="xs">{d.items?.length || 0} Products</Text>
-                                                </Table.Td>
-                                            </Table.Tr>
-                                        ))}
-                                    </Table.Tbody>
-                                </Table>
+                                <Stack gap="xs">
+                                    {relatedDispatches.map((d: any) => {
+                                        const dispatchColor: Record<string, string> = {
+                                            DRAFT: 'gray', PACKED: 'violet', SHIPPED: 'indigo',
+                                            IN_TRANSIT: 'cyan', DELIVERED: 'green',
+                                            RETURNED: 'orange', CANCELLED: 'red'
+                                        };
+                                        return (
+                                            <Paper key={d.id} withBorder p="sm" radius="md">
+                                                <Group justify="space-between" mb="xs">
+                                                    <Group gap="xs">
+                                                        <Text size="sm" fw={700} c="blue">#{d.id}</Text>
+                                                        {d.referenceNumber && <Text size="xs" c="dimmed">({d.referenceNumber})</Text>}
+                                                    </Group>
+                                                    <Group gap="xs">
+                                                        <Badge size="sm" color={dispatchColor[d.status] || 'gray'} variant="light">
+                                                            {d.status.replace(/_/g, ' ')}
+                                                        </Badge>
+                                                        <Text size="xs" c="dimmed">{new Date(d.createdAt).toLocaleDateString()}</Text>
+                                                    </Group>
+                                                </Group>
+                                                <Table verticalSpacing={4} fz="xs">
+                                                    <Table.Thead>
+                                                        <Table.Tr>
+                                                            <Table.Th>Product</Table.Th>
+                                                            <Table.Th ta="center">Dispatched Qty</Table.Th>
+                                                        </Table.Tr>
+                                                    </Table.Thead>
+                                                    <Table.Tbody>
+                                                        {(d.items || []).map((di: any) => {
+                                                            // Match product name from PO items by poItemId
+                                                            const matchedPOItem = selectedOrder?.items?.find(
+                                                                (pi: any) => pi.id === di.poItemId
+                                                            );
+                                                            const productName =
+                                                                di.poItem?.product?.name ||
+                                                                matchedPOItem?.product?.name ||
+                                                                matchedPOItem?.productName ||
+                                                                `Item #${di.poItemId}`;
+                                                            return (
+                                                                <Table.Tr key={di.id ?? di.poItemId}>
+                                                                    <Table.Td>
+                                                                        <Text size="xs" fw={500}>{productName}</Text>
+                                                                    </Table.Td>
+                                                                    <Table.Td ta="center">
+                                                                        <Badge size="xs" variant="outline" color="blue">{di.quantity}</Badge>
+                                                                    </Table.Td>
+                                                                </Table.Tr>
+                                                            );
+                                                        })}
+                                                    </Table.Tbody>
+                                                </Table>
+                                            </Paper>
+                                        );
+                                    })}
+                                </Stack>
                             </Stack>
                         )}
 

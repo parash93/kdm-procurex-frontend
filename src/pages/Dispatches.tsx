@@ -205,52 +205,104 @@ export function Dispatches() {
     };
 
     // Rendering Rows
-    const rows = dispatches.map((element: any) => (
-        <Table.Tr key={element.id}>
-            <Table.Td>
-                <Text size="sm" fw={600}>#{element.id}</Text>
-            </Table.Td>
-            <Table.Td>
-                <Text size="sm">{element.supplier?.companyName || '—'}</Text>
-            </Table.Td>
-            <Table.Td>
-                <Text size="sm" c="dimmed">{[...new Set(element.items?.map((i: any) => i.poItem?.purchaseOrder?.poNumber))].join(', ') || '—'}</Text>
-            </Table.Td>
-            <Table.Td>
-                <Text size="xs" c="dimmed">{new Date(element.createdAt).toLocaleDateString()}</Text>
-            </Table.Td>
-            <Table.Td>
-                <Badge color={getStatusColor(element.status)}>{element.status}</Badge>
-            </Table.Td>
-            <Table.Td>
-                <Group gap={0}>
-                    <Button size="xs" variant="light" leftSection={<IconEye size={12} />} mr="xs" onClick={() => handleViewDispatch(element)}>View</Button>
-                    {element.status !== 'CANCELLED' && (
-                        <Menu shadow="md" width={200}>
-                            <Menu.Target>
-                                <ActionIcon variant="subtle"><IconEdit size={16} /></ActionIcon>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                                <Menu.Label>Update Status</Menu.Label>
-                                <Menu.Item leftSection={<IconPackage size={14} />} onClick={() => openStatusUpdate(element.id, 'PACKED')}>Packed</Menu.Item>
-                                <Menu.Item leftSection={<IconTruck size={14} />} onClick={() => openStatusUpdate(element.id, 'SHIPPED')}>Shipped</Menu.Item>
-                                <Menu.Item leftSection={<IconTruck size={14} />} onClick={() => openStatusUpdate(element.id, 'IN_TRANSIT')}>In Transit</Menu.Item>
-                                <Menu.Divider />
-                                <Menu.Item leftSection={<IconCheck size={14} />} color="green" onClick={() => openStatusUpdate(element.id, 'DELIVERED')}>Delivered</Menu.Item>
-                                <Menu.Item leftSection={<IconRotateClockwise size={14} />} color="orange" onClick={() => openStatusUpdate(element.id, 'RETURNED')}>Returned</Menu.Item>
-                                <Menu.Item leftSection={<IconX size={14} />} color="red" onClick={() => openStatusUpdate(element.id, 'CANCELLED')}>Cancelled</Menu.Item>
-                            </Menu.Dropdown>
-                        </Menu>
-                    )}
-                    {isAdmin && (
-                        <ActionIcon variant="subtle" color="red" ml={4} onClick={() => handleDeleteDispatch(element.id)}>
-                            <IconTrash size={16} />
-                        </ActionIcon>
-                    )}
-                </Group>
-            </Table.Td>
-        </Table.Tr>
-    ));
+    const rows = dispatches.map((element: any) => {
+        const isCancelled = element.status === 'CANCELLED';
+        const canPacked = element.status === 'DRAFT';
+        const canShipped = element.status === 'PACKED';
+        const canInTransit = element.status === 'SHIPPED';
+        const canDelivered = element.status === 'IN_TRANSIT';
+        const canReturned = element.status === 'DELIVERED';
+        return (
+            <Table.Tr key={element.id}>
+                <Table.Td>
+                    <Text size="sm" fw={600}>#{element.id}</Text>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="sm">{element.supplier?.companyName || '—'}</Text>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="sm" c="dimmed">{[...new Set(element.items?.map((i: any) => i.poItem?.purchaseOrder?.poNumber))].join(', ') || '—'}</Text>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="xs" c="dimmed">{new Date(element.createdAt).toLocaleDateString()}</Text>
+                </Table.Td>
+                <Table.Td>
+                    <Badge color={getStatusColor(element.status)}>{element.status.replace(/_/g, ' ')}</Badge>
+                </Table.Td>
+                <Table.Td>
+                    <Group gap={0}>
+                        <Button size="xs" variant="light" leftSection={<IconEye size={12} />} mr="xs" onClick={() => handleViewDispatch(element)}>View</Button>
+                        {!isCancelled && (
+                            <Menu shadow="md" width={220}>
+                                <Menu.Target>
+                                    <ActionIcon variant="subtle"><IconEdit size={16} /></ActionIcon>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                    <Menu.Label>Update Status</Menu.Label>
+                                    <Menu.Item
+                                        leftSection={<IconPackage size={14} />}
+                                        onClick={() => canPacked && openStatusUpdate(element.id, 'PACKED')}
+                                        disabled={!canPacked}
+                                        style={!canPacked ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                    >
+                                        Packed {canPacked ? '←' : ''}
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        leftSection={<IconTruck size={14} />}
+                                        onClick={() => canShipped && openStatusUpdate(element.id, 'SHIPPED')}
+                                        disabled={!canShipped}
+                                        style={!canShipped ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                    >
+                                        Shipped {canShipped ? '←' : ''}
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        leftSection={<IconTruck size={14} />}
+                                        onClick={() => canInTransit && openStatusUpdate(element.id, 'IN_TRANSIT')}
+                                        disabled={!canInTransit}
+                                        style={!canInTransit ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                    >
+                                        In Transit {canInTransit ? '←' : ''}
+                                    </Menu.Item>
+                                    <Menu.Divider />
+                                    <Menu.Item
+                                        leftSection={<IconCheck size={14} />}
+                                        color="green"
+                                        onClick={() => canDelivered && openStatusUpdate(element.id, 'DELIVERED')}
+                                        disabled={!canDelivered}
+                                        style={!canDelivered ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                    >
+                                        Delivered {canDelivered ? '←' : ''}
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        leftSection={<IconRotateClockwise size={14} />}
+                                        color="orange"
+                                        onClick={() => canReturned && openStatusUpdate(element.id, 'RETURNED')}
+                                        disabled={!canReturned}
+                                        style={!canReturned ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                    >
+                                        Returned {canReturned ? '←' : ''}
+                                    </Menu.Item>
+                                    <Menu.Divider />
+                                    <Menu.Item
+                                        leftSection={<IconX size={14} />}
+                                        color="red"
+                                        onClick={() => openStatusUpdate(element.id, 'CANCELLED')}
+                                    >
+                                        Cancelled
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
+                        )}
+                        {isAdmin && (
+                            <ActionIcon variant="subtle" color="red" ml={4} onClick={() => handleDeleteDispatch(element.id)}>
+                                <IconTrash size={16} />
+                            </ActionIcon>
+                        )}
+                    </Group>
+                </Table.Td>
+            </Table.Tr>
+        );
+    });
 
     return (
         <Box pb="xl">

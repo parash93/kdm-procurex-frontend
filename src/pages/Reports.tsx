@@ -124,7 +124,7 @@ export function Reports() {
     // Shared filter state
     const [supplierId, setSupplierId] = useState<string | null>(null);
     const [divisionId, setDivisionId] = useState<string | null>(null);
-    const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+    const [dateRange, setDateRange] = useState<[string | null, string | null]>([null, null]);
 
     // Orders filters
     const [orderStatus, setOrderStatus] = useState<string | null>(null);
@@ -152,8 +152,8 @@ export function Reports() {
         setLoading(true);
         setHasFetched(false);
         try {
-            const fromStr = dateRange[0] ? dateRange[0].toISOString() : undefined;
-            const toStr = dateRange[1] ? dateRange[1].toISOString() : undefined;
+            const fromStr = dateRange[0] ? new Date(dateRange[0]).toISOString() : undefined;
+            const toStr = dateRange[1] ? new Date(dateRange[1]).toISOString() : undefined;
 
             if (tab === 'orders') {
                 const data = await api.getOrdersReport({

@@ -6,7 +6,7 @@ import {
 import { IconPlus, IconTruck, IconCheck, IconX, IconEye, IconRotateClockwise, IconEdit, IconPackage, IconTrash } from '@tabler/icons-react';
 import { useState, useEffect } from "react";
 import { useForm } from "@mantine/form";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { usePaginatedData } from "../hooks/usePaginatedData";
@@ -15,6 +15,7 @@ import { notifications } from "@mantine/notifications";
 
 export function Dispatches() {
     const { isAdmin } = useAuth();
+    const isMobile = useMediaQuery('(max-width: 768px)');
     const [opened, { open, close }] = useDisclosure(false);
 
     // Data Loading
@@ -307,9 +308,9 @@ export function Dispatches() {
     return (
         <Box pb="xl">
             <Stack gap="xl">
-                <Group justify="space-between" align="flex-end">
-                    <Box>
-                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Dispatches</Title>
+                <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
+                    <Box style={{ flex: 1, minWidth: 300 }}>
+                        <Title order={1} fw={900} style={{ letterSpacing: '-1px', fontSize: 'clamp(1.5rem, 5vw, 2.1rem)' }}>Dispatches</Title>
                         <Text c="dimmed">Track incoming shipments and deliveries</Text>
                     </Box>
                     <Button leftSection={<IconPlus size={18} />} onClick={open} variant="gradient" gradient={{ from: 'teal', to: 'cyan' }}>New Dispatch</Button>
@@ -344,6 +345,7 @@ export function Dispatches() {
                 title={<Text fw={700} size="lg">Create New Dispatch</Text>}
                 size="xl"
                 radius="md"
+                fullScreen={isMobile}
             >
                 <Stepper active={activeStep} onStepClick={setActiveStep}>
                     {/* Step 1: Supplier Selection */}
@@ -478,7 +480,7 @@ export function Dispatches() {
             </Modal>
 
             {/* View Dispatch Modal */}
-            <Modal opened={viewModalOpened} onClose={closeViewModal} title={<Text fw={700}>Dispatch #{viewDispatch?.id}</Text>} size="lg">
+            <Modal opened={viewModalOpened} onClose={closeViewModal} title={<Text fw={700}>Dispatch #{viewDispatch?.id}</Text>} size="lg" fullScreen={isMobile}>
                 {viewDispatch && (
                     <Stack>
                         <Group justify="space-between">

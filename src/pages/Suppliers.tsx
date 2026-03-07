@@ -145,8 +145,8 @@ export function Suppliers() {
         <Box pb="xl">
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-end" wrap="wrap">
-                    <Box>
-                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Suppliers</Title>
+                    <Box style={{ flex: 1, minWidth: 300 }}>
+                        <Title order={1} fw={900} style={{ letterSpacing: '-1px', fontSize: 'clamp(1.5rem, 5vw, 2.1rem)' }}>Suppliers</Title>
                         <Text c="dimmed" size="sm">Manage your vendor relationships and master data</Text>
                     </Box>
                     <Group>

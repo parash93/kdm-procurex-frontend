@@ -97,9 +97,9 @@ export function Dashboard() {
             <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
             <Stack gap="xl">
                 {/* Header */}
-                <Group justify="space-between">
+                <Group justify="space-between" align="flex-end" wrap="wrap">
                     <Box>
-                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>
+                        <Title order={1} fw={900} style={{ letterSpacing: '-1px', fontSize: 'clamp(1.5rem, 5vw, 2.1rem)' }}>
                             {isSales ? 'Sales Dashboard' : 'Procurement Dashboard'}
                         </Title>
                         <Text c="dimmed" size="sm">
@@ -127,12 +127,12 @@ export function Dashboard() {
                     <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }} spacing="md">
                         {orderStatCards.map((stat) => (
                             <Paper key={stat.label} withBorder p="lg" radius="md" shadow="sm">
-                                <Group justify="space-between" wrap="nowrap">
-                                    <div>
-                                        <Text c="dimmed" fw={700} size="xs" tt="uppercase" mb={4}>{stat.label}</Text>
+                                <Group justify="space-between" wrap="nowrap" gap="xs">
+                                    <Box style={{ overflow: 'hidden' }}>
+                                        <Text c="dimmed" fw={700} size="xs" tt="uppercase" mb={4} truncate="end">{stat.label}</Text>
                                         <Text fw={900} size="xl">{stat.value}</Text>
-                                    </div>
-                                    <ThemeIcon variant="light" size="xl" radius="md" color={stat.color}>
+                                    </Box>
+                                    <ThemeIcon variant="light" size="xl" radius="md" color={stat.color} visibleFrom="xs">
                                         <stat.icon size="1.2rem" />
                                     </ThemeIcon>
                                 </Group>
@@ -148,12 +148,12 @@ export function Dashboard() {
                         <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="md">
                             {dispatchStatCards.map((stat) => (
                                 <Paper key={stat.label} withBorder p="lg" radius="md" shadow="sm">
-                                    <Group justify="space-between" wrap="nowrap">
-                                        <div>
-                                            <Text c="dimmed" fw={700} size="xs" tt="uppercase" mb={4}>{stat.label}</Text>
+                                    <Group justify="space-between" wrap="nowrap" gap="xs">
+                                        <Box style={{ overflow: 'hidden' }}>
+                                            <Text c="dimmed" fw={700} size="xs" tt="uppercase" mb={4} truncate="end">{stat.label}</Text>
                                             <Text fw={900} size="xl">{stat.value}</Text>
-                                        </div>
-                                        <ThemeIcon variant="light" size="xl" radius="md" color={stat.color}>
+                                        </Box>
+                                        <ThemeIcon variant="light" size="xl" radius="md" color={stat.color} visibleFrom="xs">
                                             <stat.icon size="1.2rem" />
                                         </ThemeIcon>
                                     </Group>
@@ -232,71 +232,73 @@ export function Dashboard() {
                             {divisionId ? 'Division Summary' : 'Orders by Division'}
                         </Title>
                     </Group>
-                    <Table verticalSpacing="sm" striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Division</Table.Th>
-                                <Table.Th ta="center">Orders</Table.Th>
-                                <Table.Th ta="center">Total Qty</Table.Th>
-                                {!isSales && <>
-                                    <Table.Th ta="center">Dispatched Qty</Table.Th>
-                                    <Table.Th ta="center">Delivered Qty</Table.Th>
-                                    <Table.Th ta="center">Pending Qty</Table.Th>
-                                </>}
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {ordersByDivision.map((div: any) => {
-                                const pct = div.totalQty > 0 ? Math.round((div.deliveredQty / div.totalQty) * 100) : 0;
-                                return (
-                                    <Table.Tr key={div.divisionName}>
-                                        <Table.Td>
-                                            <Group gap="xs">
-                                                <IconBuildingSkyscraper size={14} color="gray" />
-                                                <Text fw={600} size="sm">{div.divisionName}</Text>
-                                            </Group>
-                                        </Table.Td>
-                                        <Table.Td ta="center">
-                                            <Badge variant="light">{div.count}</Badge>
-                                        </Table.Td>
-                                        <Table.Td ta="center">
-                                            <Text fw={700} c="blue">{div.totalQty.toLocaleString()}</Text>
-                                        </Table.Td>
-                                        {!isSales && <>
-                                            <Table.Td ta="center">
-                                                <Text fw={600} c="indigo">{div.dispatchedQty.toLocaleString()}</Text>
-                                            </Table.Td>
-                                            <Table.Td ta="center">
-                                                <Group gap={4} justify="center">
-                                                    <Text fw={600} c="teal">{div.deliveredQty.toLocaleString()}</Text>
-                                                    <Badge size="xs" color="teal" variant="light">{pct}%</Badge>
+                    <Table.ScrollContainer minWidth={600}>
+                        <Table verticalSpacing="sm" striped highlightOnHover>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Division</Table.Th>
+                                    <Table.Th ta="center">Orders</Table.Th>
+                                    <Table.Th ta="center">Total Qty</Table.Th>
+                                    {!isSales && <>
+                                        <Table.Th ta="center">Dispatched Qty</Table.Th>
+                                        <Table.Th ta="center">Delivered Qty</Table.Th>
+                                        <Table.Th ta="center">Pending Qty</Table.Th>
+                                    </>}
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {ordersByDivision.map((div: any) => {
+                                    const pct = div.totalQty > 0 ? Math.round((div.deliveredQty / div.totalQty) * 100) : 0;
+                                    return (
+                                        <Table.Tr key={div.divisionName}>
+                                            <Table.Td>
+                                                <Group gap="xs">
+                                                    <IconBuildingSkyscraper size={14} color="gray" />
+                                                    <Text fw={600} size="sm">{div.divisionName}</Text>
                                                 </Group>
                                             </Table.Td>
                                             <Table.Td ta="center">
-                                                <Text fw={600} c={div.pendingQty > 0 ? 'orange' : 'teal'}>
-                                                    {div.pendingQty.toLocaleString()}
-                                                </Text>
+                                                <Badge variant="light">{div.count}</Badge>
                                             </Table.Td>
-                                        </>}
+                                            <Table.Td ta="center">
+                                                <Text fw={700} c="blue">{div.totalQty.toLocaleString()}</Text>
+                                            </Table.Td>
+                                            {!isSales && <>
+                                                <Table.Td ta="center">
+                                                    <Text fw={600} c="indigo">{div.dispatchedQty.toLocaleString()}</Text>
+                                                </Table.Td>
+                                                <Table.Td ta="center">
+                                                    <Group gap={4} justify="center">
+                                                        <Text fw={600} c="teal">{div.deliveredQty.toLocaleString()}</Text>
+                                                        <Badge size="xs" color="teal" variant="light">{pct}%</Badge>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td ta="center">
+                                                    <Text fw={600} c={div.pendingQty > 0 ? 'orange' : 'teal'}>
+                                                        {div.pendingQty.toLocaleString()}
+                                                    </Text>
+                                                </Table.Td>
+                                            </>}
+                                        </Table.Tr>
+                                    );
+                                })}
+                                {ordersByDivision.length === 0 && (
+                                    <Table.Tr>
+                                        <Table.Td colSpan={6} ta="center">
+                                            <Text c="dimmed" size="sm">No data available</Text>
+                                        </Table.Td>
                                     </Table.Tr>
-                                );
-                            })}
-                            {ordersByDivision.length === 0 && (
-                                <Table.Tr>
-                                    <Table.Td colSpan={6} ta="center">
-                                        <Text c="dimmed" size="sm">No data available</Text>
-                                    </Table.Td>
-                                </Table.Tr>
-                            )}
-                        </Table.Tbody>
-                    </Table>
+                                )}
+                            </Table.Tbody>
+                        </Table>
+                    </Table.ScrollContainer>
                 </Paper>
 
                 {/* Resources (admin only) */}
                 {isAdmin && (
                     <Paper withBorder p="xl" radius="md" shadow="sm">
                         <Title order={3} mb="lg">Resources Overview</Title>
-                        <SimpleGrid cols={4} spacing="md">
+                        <SimpleGrid cols={{ base: 1, xs: 2, sm: 4 }} spacing="md">
                             {[
                                 { icon: IconBuildingSkyscraper, label: 'Divisions', value: stats?.totalDivisions || 0, color: 'indigo' },
                                 { icon: IconCategory, label: 'Categories', value: stats?.totalCategories || 0, color: 'teal' },
@@ -322,7 +324,7 @@ export function Dashboard() {
                 {/* Delayed Orders Table with Pagination */}
                 {delayedData.total > 0 && (
                     <Card withBorder radius="md" p="xl" shadow="sm">
-                        <Group justify="space-between" mb="lg">
+                        <Group justify="space-between" mb="lg" wrap="wrap">
                             <Group gap="sm">
                                 <IconAlertTriangle size={20} color="red" />
                                 <Title order={3} c="red">Delayed Orders</Title>

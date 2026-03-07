@@ -7,7 +7,7 @@ import { useTheme } from "../context/ThemeContext";
 import { getNavItemsForRole } from "../config/navigation";
 
 export function Layout() {
-    const [opened, { toggle }] = useDisclosure();
+    const [opened, { toggle, close }] = useDisclosure();
     const { user, logout } = useAuth();
     const { colorScheme, toggleColorScheme } = useTheme();
     const navigate = useNavigate();
@@ -23,7 +23,10 @@ export function Layout() {
             label={link.label}
             leftSection={<link.icon size="1.2rem" stroke={1.5} />}
             rightSection={<IconChevronRight size="0.8rem" stroke={1.5} />}
-            onClick={() => navigate(link.to)}
+            onClick={() => {
+                navigate(link.to);
+                close();
+            }}
             variant="light"
             styles={{
                 label: { fontWeight: 500 }
@@ -43,22 +46,21 @@ export function Layout() {
             bg="var(--mantine-color-body)"
         >
             <AppShell.Header style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-                <Group h="100%" px="xl" justify="space-between">
+                <Group h="100%" px={{ base: 'md', sm: 'xl' }} justify="space-between">
                     <Group gap="xs">
                         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
                         <Text
                             fw={800}
-                            size="xl"
                             variant="gradient"
                             gradient={{ from: 'blue', to: 'cyan', deg: 90 }}
-                            style={{ letterSpacing: '-0.5px' }}
+                            style={{ letterSpacing: '-0.5px', fontSize: 'clamp(1.1rem, 4vw, 1.5rem)' }}
                         >
                             KDM ProcureX
                         </Text>
                     </Group>
 
-                    <Group gap="md">
-                        <Box hiddenFrom="xs">
+                    <Group gap={{ base: 'xs', sm: 'md' }}>
+                        <Box visibleFrom="sm">
                             <Text size="sm" fw={600}>{user?.username}</Text>
                             <Badge size="xs" variant="light">{user?.role}</Badge>
                         </Box>

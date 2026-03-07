@@ -463,23 +463,24 @@ export function Orders() {
     return (
         <Box pb="xl">
             <Stack gap="xl">
-                <Group justify="space-between" align="flex-end">
-                    <Box style={{ flex: 1 }}>
-                        <Title order={1} fw={900} style={{ letterSpacing: '-1px' }}>Purchase Orders</Title>
+                <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
+                    <Box style={{ flex: 1, minWidth: 300 }}>
+                        <Title order={1} fw={900} style={{ letterSpacing: '-1px', fontSize: 'clamp(1.5rem, 5vw, 2.1rem)' }}>Purchase Orders</Title>
                         <Text c="dimmed" size="sm">Manage and track your procurement orders.</Text>
                     </Box>
-                    <Button variant="gradient" gradient={{ from: 'blue', to: 'indigo' }} leftSection={<IconPlus size={18} />} onClick={handleOpen}>
-                        New PO
-                    </Button>
-                    <Button
-                        variant="outline"
-                        color="gray"
-                        leftSection={<IconDownload size={18} />}
-                        onClick={handleExport}
-                        style={{ marginLeft: 8 }}
-                    >
-                        Export CSV
-                    </Button>
+                    <Group gap="xs">
+                        <Button variant="gradient" gradient={{ from: 'blue', to: 'indigo' }} leftSection={<IconPlus size={18} />} onClick={handleOpen}>
+                            New PO
+                        </Button>
+                        <Button
+                            variant="outline"
+                            color="gray"
+                            leftSection={<IconDownload size={18} />}
+                            onClick={handleExport}
+                        >
+                            Export CSV
+                        </Button>
+                    </Group>
                 </Group>
 
                 <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: 'var(--mantine-color-body)', position: 'relative' }}>

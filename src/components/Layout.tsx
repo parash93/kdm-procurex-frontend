@@ -46,7 +46,7 @@ export function Layout() {
             bg="var(--mantine-color-body)"
         >
             <AppShell.Header style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-                <Group h="100%" px={{ base: 'md', sm: 'xl' }} justify="space-between">
+                <Group h="100%" px="md" justify="space-between">
                     <Group gap="xs">
                         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
                         <Text
@@ -59,7 +59,7 @@ export function Layout() {
                         </Text>
                     </Group>
 
-                    <Group gap={{ base: 'xs', sm: 'md' }}>
+                    <Group gap="xs">
                         <Box visibleFrom="sm">
                             <Text size="sm" fw={600}>{user?.username}</Text>
                             <Badge size="xs" variant="light">{user?.role}</Badge>
